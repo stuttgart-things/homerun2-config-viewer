@@ -27,3 +27,6 @@ Thumbs.db
 # Build
 dist/
 /tmp/
+
+# Taskfile remote include cache
+.task/

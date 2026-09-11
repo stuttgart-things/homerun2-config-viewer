@@ -40,6 +40,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 - Config via environment variables, loaded and validated once at startup; every invalid value is reported, and startup fails
 - **No silent defaults for what is shown**: a value the viewer cannot resolve (a Secret ref, an unknown component, a profile it cannot find) is shown as unresolved, never guessed
 - Rule evaluation belongs in homerun-library `routing`, not here — this service collects and presents
+- Service defaults (stream, consumer group, profile path, publishing modes) live in `internal/discovery/kinds.go` and `discovery.go`, each read from the service's code. When a service changes a default, change it there too
 - Tests: `go test ./...` — no cluster needed; Kubernetes access is tested with `client-go`'s fake clientset
 - Logging: `log/slog` (JSON/text), NOT pterm
 
@@ -50,6 +51,8 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 | `main.go` | entrypoint, HTTP server, graceful shutdown |
 | `internal/config/` | env config loading/validation, slog setup |
 | `internal/handlers/` | health endpoint |
+| `internal/kube/` | clientset from `KUBECONFIG` or in-cluster |
+| `internal/discovery/` | Deployments → components: kind, role, streams, consumer group, profile path, notes |
 | `internal/banner/` | animated TUI startup banner |
 | `dagger/main.go` | CI functions: Lint, Govulncheck, Test, SmokeTest, Build, BuildImage, ScanImage |
 
@@ -71,6 +74,10 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 ```bash
 # Unit tests
 go test ./...
+
+# Discovery against a real cluster (read-only; build tag keeps it out of CI)
+KUBECONFIG=~/.kube/homerun2-test1 NAMESPACE=homerun2 \
+  go test -tags cluster -run TestDiscover_Cluster -v ./internal/discovery/
 
 # Lint
 golangci-lint run

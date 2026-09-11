@@ -15,9 +15,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/stuttgart-things/homerun2-config-viewer/internal/api"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/banner"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/config"
+	"github.com/stuttgart-things/homerun2-config-viewer/internal/discovery"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/handlers"
+	"github.com/stuttgart-things/homerun2-config-viewer/internal/kube"
+	"github.com/stuttgart-things/homerun2-config-viewer/internal/snapshot"
 )
 
 // Set by ldflags at build time (see .ko.yaml).
@@ -74,12 +78,32 @@ func run(ctx context.Context, cfg config.Config, info handlers.BuildInfo) error 
 	if err != nil {
 		return fmt.Errorf("listen on :%s: %w", cfg.HTTPPort, err)
 	}
-	return serve(ctx, ln, newMux(info))
+	return serve(ctx, ln, newMux(info, newAPI(cfg)))
 }
 
-func newMux(info handlers.BuildInfo) *http.ServeMux {
+// newAPI wires the Kubernetes client, discovery and the snapshot cache into
+// the API. A client that cannot be built - no KUBECONFIG outside a cluster -
+// does not stop the service: /healthz still answers, and every API call
+// reports the error instead of an empty namespace.
+func newAPI(cfg config.Config) *api.Server {
+	var build snapshot.BuildFunc
+	client, err := kube.NewClientset(cfg.Kubeconfig)
+	if err != nil {
+		slog.Warn("kubernetes client unavailable, the API reports it", "error", err)
+		build = func(context.Context) (*discovery.Result, error) { return nil, err }
+	} else {
+		d := &discovery.Discoverer{Client: client, Namespace: cfg.Namespace, LabelSelector: cfg.LabelSelector}
+		build = d.Discover
+	}
+	return api.New(snapshot.New(build, cfg.CacheTTL), cfg.MustReactSeverities)
+}
+
+func newMux(info handlers.BuildInfo, apiServer *api.Server) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", handlers.NewHealthHandler(info))
+	if apiServer != nil {
+		apiServer.Register(mux)
+	}
 	return mux
 }
 

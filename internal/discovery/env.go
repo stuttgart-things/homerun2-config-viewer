@@ -22,6 +22,10 @@ type Value struct {
 	Unresolved string `json:"unresolved,omitempty"`
 }
 
+// cannotStart ends every message about a reference that keeps the pod from
+// starting.
+const cannotStart = "the pod cannot start"
+
 // Value sources that are not a reference to an object.
 const (
 	// SourceDefault marks a Value that is the service's own default.
@@ -73,6 +77,9 @@ func resolveEnv(container *corev1.Container, configMaps map[string]*corev1.Confi
 		v := resolveVar(&container.Env[i], configMaps, namespace)
 		if v == nil {
 			continue // an optional reference to something missing: not set
+		}
+		if strings.HasSuffix(v.Unresolved, cannotStart) {
+			env.problems = append(env.problems, fmt.Sprintf("%s: %s", v.Name, v.Unresolved))
 		}
 		env.vars[v.Name] = *v
 	}

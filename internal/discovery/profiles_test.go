@@ -461,7 +461,7 @@ func TestRoutingComponents(t *testing.T) {
 		configMap("light-profile", map[string]string{"profile.yaml": lightProfileYAML}),
 		lightCatcher("light"),
 		deployment("core", "consumer", "img/homerun2-core-catcher:1"),
-		deployment("stopped", "consumer", "img/homerun2-core-catcher:1", replicas(0)),
+		deployment("stopped", "consumer", "img/homerun2-core-catcher:1", scaledToZero),
 		deployment("secret-group", "consumer", "img/homerun2-core-catcher:1",
 			envVar(corev1.EnvVar{Name: "CONSUMER_GROUP", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
 				LocalObjectReference: corev1.LocalObjectReference{Name: "s"}, Key: "g",

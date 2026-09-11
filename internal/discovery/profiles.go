@@ -104,6 +104,7 @@ func (r *Result) loadProfile(c *Component) (*ProfileRef, routing.Profile) {
 			return ref, unavailableProfile{summary: "unknown", problem: "profile not resolved: " + perr.msg}
 		case perr.podCannotStart:
 			ref.Message = perr.msg
+			c.StartProblems = append(c.StartProblems, perr.msg)
 			return ref, unavailableProfile{summary: "does not run", problem: perr.msg}
 		default:
 			ref.Message = perr.msg + "; " + missingProfileEffect[c.Kind]

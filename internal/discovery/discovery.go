@@ -50,6 +50,13 @@ type Component struct {
 	// be read. Set for catchers with a profile.
 	Profile *ProfileRef `json:"profile,omitempty"`
 
+	// StreamsUnresolved: the streams depend on a value the viewer cannot
+	// resolve, so they are unknown rather than empty.
+	StreamsUnresolved bool `json:"streamsUnresolved,omitempty"`
+
+	// StartProblems are reasons the pod cannot start at all, such as a
+	// ConfigMap it requires that does not exist.
+	StartProblems []string `json:"startProblems,omitempty"`
 	// Notes are things the viewer could not resolve or that change what the
 	// component does, in plain words.
 	Notes []string `json:"notes,omitempty"`
@@ -65,9 +72,10 @@ type Component struct {
 func (c *Component) Running() bool { return c.Replicas > 0 }
 
 // Routed reports whether the component takes part in message routing: it is
-// a pitcher or catcher, runs, and its streams are known.
+// a pitcher or catcher, runs - wants replicas and can start - and its streams
+// are known.
 func (c *Component) Routed() bool {
-	return c.Role != "" && c.Running() && len(c.Streams) > 0
+	return c.Role != "" && c.Running() && len(c.StartProblems) == 0 && len(c.Streams) > 0
 }
 
 // Result is what Discover found in a namespace.
@@ -153,7 +161,7 @@ func resolveComponent(dep *appsv1.Deployment, configMaps map[string]*corev1.Conf
 	c.Role = info.role
 
 	env := resolveEnv(container, configMaps, namespace)
-	c.Notes = append(c.Notes, env.problems...)
+	c.StartProblems = append(c.StartProblems, env.problems...)
 
 	switch c.Role {
 	case routing.RoleCatcher:
@@ -294,6 +302,7 @@ func gitPitcherUsesRedis(c *Component, env environment) bool {
 func setStreams(c *Component, streams []string, from ...Value) {
 	for _, v := range from {
 		if v.Unresolved != "" && v.Source != SourceDefault {
+			c.StreamsUnresolved = true
 			c.Notes = append(c.Notes, fmt.Sprintf("streams unknown: %s %s", v.Name, v.Unresolved))
 			return
 		}

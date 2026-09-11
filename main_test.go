@@ -5,6 +5,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +28,7 @@ func TestServe_HealthzAndShutdown(t *testing.T) {
 	ln := listen(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, ln, newMux(handlers.BuildInfo{Version: "test"})) }()
+	go func() { done <- serve(ctx, ln, newMux(handlers.BuildInfo{Version: "test"}, nil)) }()
 
 	resp, err := http.Get("http://" + ln.Addr().String() + "/healthz")
 	if err != nil {
@@ -106,4 +109,21 @@ func TestRun_ListenError(t *testing.T) {
 
 func cfgWithPort(port string) config.Config {
 	return config.Config{HTTPPort: port}
+}
+
+func TestNewAPI_ReportsAnUnavailableClient(t *testing.T) {
+	cfg := config.Config{Namespace: "homerun2", Kubeconfig: filepath.Join(t.TempDir(), "missing"), CacheTTL: time.Second}
+	mux := newMux(handlers.BuildInfo{}, newAPI(cfg))
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/components", http.NoBody))
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "load kubeconfig") {
+		t.Errorf("API without a client: %d %s", rec.Code, rec.Body)
+	}
+
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", http.NoBody))
+	if rec.Code != http.StatusOK {
+		t.Errorf("/healthz must not depend on the Kubernetes client: %d", rec.Code)
+	}
 }

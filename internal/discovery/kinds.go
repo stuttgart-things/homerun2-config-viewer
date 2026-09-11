@@ -30,14 +30,22 @@ const (
 // the component does.
 const ComponentLabel = "app.kubernetes.io/component"
 
-// componentLabelPitcher is shared by git-pitcher and demo-pitcher.
-const componentLabelPitcher = "pitcher"
+// Values of the component label that differ from the kind name.
+const (
+	// componentLabelPitcher is shared by git-pitcher and demo-pitcher.
+	componentLabelPitcher  = "pitcher"
+	componentLabelNotifier = "notifier"
+)
 
 // Service defaults that more than one service shares.
 const (
 	defaultStreamMessages = "messages"
 	envProfilePath        = "PROFILE_PATH"
 	defaultProfileFile    = "profile.yaml"
+	// envConfigPath and defaultNotificationConfig: notification-catcher's
+	// config path variable and its default.
+	envConfigPath             = "CONFIG_PATH"
+	defaultNotificationConfig = "/etc/notification-catcher/config.yaml"
 )
 
 // defaultGroup is the consumer group a catcher uses when CONSUMER_GROUP is
@@ -84,7 +92,7 @@ var kinds = map[Kind]kindInfo{
 	KindNotificationCatcher: {
 		role: routing.RoleCatcher, multiStream: true,
 		defaultStream: "alerts", defaultGroup: defaultGroup(KindNotificationCatcher),
-		profileEnv: "CONFIG_PATH", profileDefault: "/etc/notification-catcher/config.yaml",
+		profileEnv: envConfigPath, profileDefault: defaultNotificationConfig,
 	},
 	KindScout:    {},
 	KindWLEDMock: {},
@@ -94,14 +102,14 @@ var kinds = map[Kind]kindInfo{
 // componentKinds maps the component label to a kind. "pitcher" is shared by
 // git-pitcher and demo-pitcher and resolved by classify.
 var componentKinds = map[string]Kind{
-	"api":           KindOmniPitcher,
-	"watcher":       KindK8sPitcher,
-	"consumer":      KindCoreCatcher,
-	"light-catcher": KindLightCatcher,
-	"led-catcher":   KindLEDCatcher,
-	"notifier":      KindNotificationCatcher,
-	"analytics":     KindScout,
-	"wled-mock":     KindWLEDMock,
+	"api":                    KindOmniPitcher,
+	"watcher":                KindK8sPitcher,
+	"consumer":               KindCoreCatcher,
+	string(KindLightCatcher): KindLightCatcher,
+	string(KindLEDCatcher):   KindLEDCatcher,
+	componentLabelNotifier:   KindNotificationCatcher,
+	"analytics":              KindScout,
+	"wled-mock":              KindWLEDMock,
 }
 
 // classify determines the kind from the component label. For the shared

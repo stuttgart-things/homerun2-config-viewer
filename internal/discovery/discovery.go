@@ -46,6 +46,9 @@ type Component struct {
 	// Mode is the variable selecting how a pitcher publishes
 	// (demo-pitcher PITCH_TARGET, git-pitcher PITCHER_MODE).
 	Mode *Value `json:"mode,omitempty"`
+	// Profile is where the catcher's profile comes from and whether it could
+	// be read. Set for catchers with a profile.
+	Profile *ProfileRef `json:"profile,omitempty"`
 
 	// Notes are things the viewer could not resolve or that change what the
 	// component does, in plain words.
@@ -53,6 +56,9 @@ type Component struct {
 
 	container corev1.Container
 	volumes   []corev1.Volume
+	// rules is the parsed profile handed to routing. Never nil for a catcher
+	// with a profile path: nil means "reacts to every message".
+	rules routing.Profile
 }
 
 // Running reports whether the Deployment wants at least one replica.
@@ -111,6 +117,7 @@ func (d *Discoverer) Discover(ctx context.Context) (*Result, error) {
 		res.Components = append(res.Components, resolveComponent(&deployments.Items[i], res.configMaps, d.Namespace))
 	}
 	slices.SortFunc(res.Components, func(a, b Component) int { return cmp.Compare(a.Name, b.Name) })
+	res.resolveProfiles()
 	return res, nil
 }
 

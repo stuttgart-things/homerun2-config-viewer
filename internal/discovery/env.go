@@ -64,7 +64,7 @@ func resolveEnv(container *corev1.Container, configMaps map[string]*corev1.Confi
 				name := from.Prefix + key
 				env.vars[name] = Value{Name: name, Value: val, Source: "envFrom ConfigMap " + ref.Name}
 			}
-		case from.SecretRef != nil:
+		case from.SecretRef != nil: // pragma: allowlist secret
 			env.secretEnvFrom = append(env.secretEnvFrom, from.SecretRef.Name)
 		}
 	}
@@ -113,7 +113,7 @@ func resolveVar(e *corev1.EnvVar, configMaps map[string]*corev1.ConfigMap, names
 			return v
 		}
 		v.Value = val
-	case from.SecretKeyRef != nil:
+	case from.SecretKeyRef != nil: // pragma: allowlist secret
 		v.Source = fmt.Sprintf("Secret %s key %s", from.SecretKeyRef.Name, from.SecretKeyRef.Key)
 		v.Unresolved = "comes from a Secret, which the viewer does not read"
 	case from.FieldRef != nil && from.FieldRef.FieldPath == "metadata.namespace":

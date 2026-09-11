@@ -83,8 +83,10 @@ func configEnvFrom(d *appsv1.Deployment) {
 	})(d)
 }
 
-func replicas(n int32) depOpt {
-	return func(d *appsv1.Deployment) { d.Spec.Replicas = &n }
+// scaledToZero sets replicas to 0.
+func scaledToZero(d *appsv1.Deployment) {
+	var zero int32
+	d.Spec.Replicas = &zero
 }
 
 func configMap(name string, data map[string]string) *corev1.ConfigMap {
@@ -371,6 +373,9 @@ func TestDiscover_UnresolvableValues(t *testing.T) {
 	if !hasNote(c, "ConfigMap nope does not exist: the pod cannot start") {
 		t.Errorf("missing-cm: notes %v", c.Notes)
 	}
+	if want := "CONSUMER_GROUP: ConfigMap nope does not exist: the pod cannot start"; !slices.Contains(c.StartProblems, want) || c.Routed() {
+		t.Errorf("a missing required keyRef keeps the pod from starting: start problems %v, routed %v", c.StartProblems, c.Routed())
+	}
 
 	if c = component(t, res, "expansion"); c.Streams != nil || !hasNote(c, "$(VAR) expansion") {
 		t.Errorf("expansion: streams %v, notes %v", c.Streams, c.Notes)
@@ -387,8 +392,12 @@ func TestDiscover_UnresolvableValues(t *testing.T) {
 
 func TestDiscover_MissingEnvFromConfigMap(t *testing.T) {
 	res := discover(t, deployment("core", "consumer", "img/homerun2-core-catcher:1", configEnvFrom))
-	if c := component(t, res, "core"); !hasNote(c, "envFrom ConfigMap core-config does not exist: the pod cannot start") {
-		t.Errorf("notes %v", c.Notes)
+	c := component(t, res, "core")
+	if len(c.StartProblems) != 1 || c.StartProblems[0] != "envFrom ConfigMap core-config does not exist: the pod cannot start" {
+		t.Errorf("start problems %v", c.StartProblems)
+	}
+	if c.Routed() {
+		t.Error("a pod that cannot start neither publishes nor reads")
 	}
 }
 
@@ -405,7 +414,7 @@ func TestDiscover_ReplicasAndContainers(t *testing.T) {
 	none := func(d *appsv1.Deployment) { d.Spec.Template.Spec.Containers = nil }
 
 	res := discover(t,
-		deployment("zero", "consumer", "img/homerun2-core-catcher:1", replicas(0)),
+		deployment("zero", "consumer", "img/homerun2-core-catcher:1", scaledToZero),
 		deployment("sidecar", "consumer", "img/homerun2-core-catcher:1", sidecar),
 		deployment("renamed", "consumer", "img/homerun2-core-catcher:1", renamed),
 		deployment("empty", "consumer", "img/homerun2-core-catcher:1", none),

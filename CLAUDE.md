@@ -55,9 +55,22 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 | `internal/handlers/` | health endpoint |
 | `internal/kube/` | clientset from `KUBECONFIG` or in-cluster |
 | `internal/discovery/` | Deployments → components: kind, role, streams, consumer group, notes; profile path → volume mount → ConfigMap key → parsed with homerun-library `routing`; `RoutingComponents()` for DryRun/BuildMatrix/Check |
+| `internal/api/` | JSON API over the snapshot (see below) |
 | `internal/snapshot/` | TTL cache over discovery: concurrent requests share one rebuild, a failed rebuild keeps the last good snapshot and is not retried within the TTL |
 | `internal/banner/` | animated TUI startup banner |
 | `dagger/main.go` | CI functions: Lint, Govulncheck, Test, SmokeTest, Build, BuildImage, ScanImage |
+
+## API
+
+| Method & path | Returns |
+|---|---|
+| `GET /api/components` | every discovered component with values, sources, profile status, start problems, notes |
+| `GET /api/findings` | `routing.Check` over routed components, then viewer findings: `pod-cannot-start`, `scaled-to-zero`, `streams-unknown`, `profile-missing`, `profile-unresolved` |
+| `GET /api/streams` | per stream: routed pitchers and catchers (with consumer group) |
+| `GET /api/matrix?stream=<s>[&severities=a,b]` | `routing.BuildMatrix` |
+| `POST /api/dryrun` | body `{"stream": "...", "message": {homerun.Message}}` → `routing.DryRun`, `pitchers`, `reachesNobody` |
+
+Every response carries `meta`: namespace, label selector, `takenAt`, and `refreshError`/`refreshFailedAt` when the latest rebuild failed. No snapshot at all is `503` with `{"error": ...}`.
 
 ## Environment Variables
 

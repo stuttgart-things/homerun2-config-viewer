@@ -1,0 +1,71 @@
+name: CI - Dagger Build & Test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: build-and-test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Dagger lint
+        uses: dagger/dagger-for-github@v8.4.1
+        with:
+          module: ./dagger
+          call: lint --src . --progress plain
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      # Blocking from the start: a new module has no backlog to wait out.
+      - name: Dagger govulncheck
+        uses: dagger/dagger-for-github@v8.4.1
+        with:
+          module: ./dagger
+          call: >-
+            govulncheck --src . --fail-on-vuln=true --progress plain
+            export --path ./govulncheck-report.txt
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Upload govulncheck report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: govulncheck-report
+          path: govulncheck-report.txt
+
+      - name: Dagger go test
+        uses: dagger/dagger-for-github@v8.4.1
+        with:
+          module: ./dagger
+          call: test --src . --progress plain
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Dagger smoke test
+        uses: dagger/dagger-for-github@v8.4.1
+        with:
+          module: ./dagger
+          call: smoke-test --src . --progress plain
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dagger-logs
+          path: |
+            ~/.cache/dagger
+            /tmp/dagger-*.log

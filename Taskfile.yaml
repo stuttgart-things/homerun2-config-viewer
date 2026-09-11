@@ -14,8 +14,11 @@ vars:
   ORGA_NAME: stuttgart-things
   GO_MODULE: github.com/{{ .ORGA_NAME }}/{{ .PROJECT }}
   TARGET_IMAGE_REPO: ghcr.io/{{ .ORGA_NAME }}/{{ .PROJECT }}
-  # Dagger-based lint/build/image tasks arrive with the Dagger module (#2),
-  # KCL rendering and kustomize push with the deployment (#7).
+  DAGGER_MODULE_DIR: ./dagger
+  SOURCE_CODE_DIR: "."
+  LINT_REPORT_PATH: /tmp/lint-report-{{ .PROJECT }}.txt
+  GOVULNCHECK_REPORT_PATH: /tmp/govulncheck-report-{{ .PROJECT }}.txt
+  # KCL rendering and kustomize push arrive with the deployment (#7).
 
 tasks:
   default:
@@ -46,3 +49,90 @@ tasks:
         NAMESPACE={{ .NAMESPACE }} \
         LOG_FORMAT=text \
         go run .
+
+  # === Dagger ===
+
+  lint:
+    desc: Run golangci-lint via Dagger
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_MODULE_DIR }} lint \
+          --src "{{ .SOURCE_CODE_DIR }}" \
+          --progress plain
+
+  govulncheck:
+    desc: Report reachable Go vulnerabilities via Dagger, fail if any
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_MODULE_DIR }} govulncheck \
+          --src "{{ .SOURCE_CODE_DIR }}" \
+          --fail-on-vuln=true \
+          --progress plain \
+          export --path={{ .GOVULNCHECK_REPORT_PATH }}
+
+  test-dagger:
+    desc: Run the test suite via Dagger
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_MODULE_DIR }} test \
+          --src "{{ .SOURCE_CODE_DIR }}" \
+          --progress plain
+
+  smoke-test:
+    desc: Build the binary, start it and check /healthz via Dagger
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_MODULE_DIR }} smoke-test \
+          --src "{{ .SOURCE_CODE_DIR }}" \
+          --progress plain
+
+  build-output-binary:
+    desc: Build project binary
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_MODULE_DIR }} build \
+        --src "{{ .SOURCE_CODE_DIR }}" \
+        --bin-name="{{ .PROJECT }}" \
+        --progress plain \
+        export --path=/tmp/go/build
+
+        ls -lta /tmp/go/build
+
+  build-scan-image-ko:
+    desc: Build, push and scan container image with ko
+    cmds:
+      - |
+        RANDOM_TAG=$(openssl rand -hex 6)
+        REPO_NAME="ttl.sh/{{ .PROJECT }}-${RANDOM_TAG}"
+
+        echo "Building and pushing to: ${REPO_NAME}"
+
+        IMAGE_REF=$(dagger call -m {{ .DAGGER_MODULE_DIR }} build-image \
+          --src "{{ .SOURCE_CODE_DIR }}" \
+          --repo "$REPO_NAME" \
+          --push="true" \
+          --progress plain)
+
+        echo "Image pushed: $IMAGE_REF"
+        echo "Scanning with Trivy..."
+
+        dagger call -m {{ .DAGGER_MODULE_DIR }} scan-image \
+          --image-ref "$IMAGE_REF" \
+          --severity "HIGH,CRITICAL" \
+          --progress plain \
+          export --path=/tmp/trivy-scan-{{ .PROJECT }}.json
+
+        echo "Build and scan complete!"
+
+  # === Release ===
+
+  trigger-release:
+    desc: Trigger Release workflow on GitHub Actions
+    cmds:
+      - |
+        echo "Triggering Release workflow..."
+        gh workflow run Release
+        sleep 2
+        RUN_ID=$(gh run list --workflow=Release --limit=1 --json databaseId --jq '.[0].databaseId')
+        echo "Run: https://github.com/{{ .ORGA_NAME }}/{{ .PROJECT }}/actions/runs/${RUN_ID}"
+        gh run watch "${RUN_ID}"

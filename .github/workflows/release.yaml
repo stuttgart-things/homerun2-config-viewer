@@ -1,0 +1,29 @@
+---
+name: Release
+on:
+  # Manual only until v1 is feature-complete (#11): semantic-release would
+  # otherwise publish the bare scaffold as v1.0.0 on the next merge. Switch to
+  # the workflow_run trigger below, as the sibling services use, when #9 is
+  # done - and set push-kustomize once the KCL deployment (#7) exists.
+  #
+  # workflow_run:
+  #   workflows: ["Build, Push & Scan Container Image"]
+  #   types: [completed]
+  #   branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    uses: stuttgart-things/github-workflow-templates/.github/workflows/call-go-release.yaml@main
+    with:
+      runs-on: ubuntu-latest
+      stage-image: true
+      push-kustomize: false
+    secrets: inherit # pragma: allowlist secret

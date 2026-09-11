@@ -15,7 +15,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 - **Build**: ko (`.ko.yaml`), no Dockerfile
 - **CI**: Dagger module (`dagger/`), Taskfile
 - **Deploy**: KCL manifests (`kcl/`), Kustomize OCI base
-- **Infra**: GitHub Actions, semantic-release
+- **Infra**: GitHub Actions, semantic-release. The Release workflow is manual-only until v1 is complete (#11); it then switches to running after every image build on main, as in the sibling services.
 
 ## Git Workflow
 
@@ -51,6 +51,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 | `internal/config/` | env config loading/validation, slog setup |
 | `internal/handlers/` | health endpoint |
 | `internal/banner/` | animated TUI startup banner |
+| `dagger/main.go` | CI functions: Lint, Govulncheck, Test, SmokeTest, Build, BuildImage, ScanImage |
 
 ## Environment Variables
 
@@ -73,6 +74,13 @@ go test ./...
 
 # Lint
 golangci-lint run
+
+# The CI steps, locally via Dagger
+task lint
+task govulncheck
+task test-dagger
+task smoke-test
+task build-scan-image-ko
 
 # Run against a cluster
 KUBECONFIG=~/.kube/homerun2-test1 NAMESPACE=homerun2 LOG_FORMAT=text go run .

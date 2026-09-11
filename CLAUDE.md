@@ -41,6 +41,8 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 - **No silent defaults for what is shown**: a value the viewer cannot resolve (a Secret ref, an unknown component, a profile it cannot find) is shown as unresolved, never guessed
 - Rule evaluation belongs in homerun-library `routing`, not here — this service collects and presents
 - Service defaults (stream, consumer group, profile path, publishing modes) live in `internal/discovery/kinds.go` and `discovery.go`, each read from the service's code. When a service changes a default, change it there too
+- What a catcher does when its profile file is missing (`missingProfileEffect` in `internal/discovery/profiles.go`) is read from the catchers' code too: light-catcher lights nothing, led-catcher runs with an empty profile, notification-catcher does not start
+- A catcher with a profile path never gets a nil `routing.Profile` — nil means "reacts to every message". A profile that cannot be used gets a stand-in that says why
 - Tests: `go test ./...` — no cluster needed; Kubernetes access is tested with `client-go`'s fake clientset
 - Logging: `log/slog` (JSON/text), NOT pterm
 
@@ -52,7 +54,8 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 | `internal/config/` | env config loading/validation, slog setup |
 | `internal/handlers/` | health endpoint |
 | `internal/kube/` | clientset from `KUBECONFIG` or in-cluster |
-| `internal/discovery/` | Deployments → components: kind, role, streams, consumer group, profile path, notes |
+| `internal/discovery/` | Deployments → components: kind, role, streams, consumer group, notes; profile path → volume mount → ConfigMap key → parsed with homerun-library `routing`; `RoutingComponents()` for DryRun/BuildMatrix/Check |
+| `internal/snapshot/` | TTL cache over discovery: concurrent requests share one rebuild, a failed rebuild keeps the last good snapshot and is not retried within the TTL |
 | `internal/banner/` | animated TUI startup banner |
 | `dagger/main.go` | CI functions: Lint, Govulncheck, Test, SmokeTest, Build, BuildImage, ScanImage |
 

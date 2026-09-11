@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	homerun "github.com/stuttgart-things/homerun-library/v4"
+	"github.com/stuttgart-things/homerun-library/v4/routing"
+
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/config"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/kube"
 )
@@ -40,10 +43,17 @@ func TestDiscover_Cluster(t *testing.T) {
 		t.Fatalf("no Deployments matched %s in %s", config.DefaultLabelSelector, namespace)
 	}
 
+	comps := res.RoutingComponents()
 	out, err := json.MarshalIndent(struct {
 		*Result
-		Streams []string `json:"streams"`
-	}{res, res.Streams()}, "", "  ")
+		Streams  []string           `json:"streams"`
+		Findings []routing.Finding  `json:"findings"`
+		DryRun   []routing.Delivery `json:"dryRunErrorFromGithub"`
+	}{
+		res, res.Streams(),
+		routing.Check(comps, []string{"error", "critical"}),
+		routing.DryRun(comps, "messages", homerun.Message{Title: "Build failed", Severity: "error", System: "github"}),
+	}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}

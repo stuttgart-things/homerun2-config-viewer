@@ -1,0 +1,24 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: homerun2-config-viewer
+  description: Read-only view of which homerun2 alert triggers what in which catcher, collected from the Kubernetes API
+  annotations:
+    github.com/project-slug: stuttgart-things/homerun2-config-viewer
+    backstage.io/techdocs-ref: url:https://github.com/stuttgart-things/homerun2-config-viewer/tree/main
+    backstage.io/source-location: url:https://github.com/stuttgart-things/homerun2-config-viewer
+  tags:
+    - golang
+    - homerun2
+    - kubernetes
+    - observability
+  links:
+    - url: https://github.com/stuttgart-things/homerun2-config-viewer
+      title: GitHub Repository
+      icon: github
+spec:
+  type: service
+  lifecycle: experimental
+  owner: platform-team
+  system: homerun2

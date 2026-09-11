@@ -1,0 +1,48 @@
+---
+version: 3
+includes:
+  git:
+    taskfile: https://raw.githubusercontent.com/stuttgart-things/tasks/refs/heads/main/git/git.yaml
+  lint:
+    taskfile: https://raw.githubusercontent.com/stuttgart-things/tasks/refs/heads/main/git/linting.yaml
+  go:
+    taskfile: https://raw.githubusercontent.com/stuttgart-things/tasks/refs/heads/main/go/lint.yaml
+
+vars:
+  PROJECT:
+    sh: basename $(pwd)
+  ORGA_NAME: stuttgart-things
+  GO_MODULE: github.com/{{ .ORGA_NAME }}/{{ .PROJECT }}
+  TARGET_IMAGE_REPO: ghcr.io/{{ .ORGA_NAME }}/{{ .PROJECT }}
+  # Dagger-based lint/build/image tasks arrive with the Dagger module (#2),
+  # KCL rendering and kustomize push with the deployment (#7).
+
+tasks:
+  default:
+    desc: Default task is select & do (work)
+    cmds:
+      - task do
+
+  do:
+    desc: Select a task to run
+    cmds:
+      - |
+        task_name=$(task -l | awk '/^\*/ {print $2}' | sed 's/:$//' | gum choose)
+        [ -n "$task_name" ] && task "$task_name"
+
+  test:
+    desc: Run unit tests (no cluster needed)
+    cmds:
+      - go test -race ./...
+
+  run-local:
+    desc: Run the viewer against a cluster from your kubeconfig
+    vars:
+      KUBECONFIG: '{{ .KUBECONFIG | default "~/.kube/config" }}'
+      NAMESPACE: '{{ .NAMESPACE | default "homerun2" }}'
+    cmds:
+      - |
+        KUBECONFIG={{ .KUBECONFIG }} \
+        NAMESPACE={{ .NAMESPACE }} \
+        LOG_FORMAT=text \
+        go run .

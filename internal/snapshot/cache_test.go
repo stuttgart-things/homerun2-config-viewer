@@ -244,3 +244,11 @@ func TestCache_BuildTimeout(t *testing.T) {
 		t.Errorf("err = %v, want the build timeout", err)
 	}
 }
+
+func TestCache_NilResultIsAnError(t *testing.T) {
+	c := New(func(context.Context) (*discovery.Result, error) { return nil, nil }, time.Minute)
+	s, err := c.Get(context.Background())
+	if !errors.Is(err, errNoResult) || s.Result != nil {
+		t.Errorf("a build returning (nil, nil) must be an error, got %+v, %v", s, err)
+	}
+}

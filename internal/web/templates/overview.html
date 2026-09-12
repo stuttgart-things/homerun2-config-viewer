@@ -1,0 +1,69 @@
+{{define "overview.html"}}{{template "head" .}}
+{{if not .Err}}
+        <section>
+            <h2>Findings <small>({{.FindingCount}})</small></h2>
+            {{range .FindingGroups}}
+            <details open class="finding-group level-{{.Level}}">
+                <summary><span class="kind">{{.Kind}}</span> <span class="count">{{len .Findings}}</span> <small>{{.Explain}}</small></summary>
+                <ul>
+                    {{range .Findings}}<li>{{.Message}}{{if .Severities}} <small>({{join .Severities ", "}})</small>{{end}}</li>{{end}}
+                </ul>
+            </details>
+            {{else}}
+            <p class="ok">No findings: every pitcher's stream is read, and every catcher with rules reacts to {{join .MustReact ", "}}.</p>
+            {{end}}
+        </section>
+
+        <section>
+            <h2>Streams</h2>
+            {{if .Streams}}
+            <div class="overflow-auto">
+            <table>
+                <thead><tr><th>Stream</th><th>Pitchers</th><th>Catchers <small>(consumer group)</small></th><th></th></tr></thead>
+                <tbody>
+                {{range .Streams}}
+                <tr{{if not .Catchers}} class="unread"{{end}}>
+                    <td><code>{{.Stream}}</code></td>
+                    <td>{{if .Pitchers}}{{join .Pitchers ", "}}{{else}}<small>no pitcher here</small>{{end}}</td>
+                    <td>{{range $i, $c := .Catchers}}{{if $i}}, {{end}}{{$c.Name}}{{if $c.ConsumerGroup}} <small>({{$c.ConsumerGroup}})</small>{{end}}{{else}}<strong>nobody reads this stream</strong>{{end}}</td>
+                    <td><a href="/matrix?stream={{.Stream}}">matrix</a> · <a href="/dryrun?stream={{.Stream}}">dry run</a></td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+            </div>
+            {{else}}
+            <p>No routed component uses a stream.</p>
+            {{end}}
+        </section>
+
+        <section>
+            <h2>Components <small>({{len .Components}})</small></h2>
+            <div class="overflow-auto">
+            <table>
+                <thead><tr><th>Deployment</th><th>Role</th><th>Streams</th><th>Consumer group</th><th>Profile</th><th>Notes</th></tr></thead>
+                <tbody>
+                {{range .Components}}
+                <tr>
+                    <td><strong>{{.Name}}</strong><br><small>{{.Kind}}{{if .Image}} · {{.Image}}{{end}}</small></td>
+                    <td>{{if .Role}}{{.Role}}{{else}}<small>not routed</small>{{end}}{{if not .Running}}<br><small class="warn">scaled to zero</small>{{end}}</td>
+                    <td>{{range .Streams}}<code>{{.}}</code> {{else}}{{if .StreamsUnresolved}}<span class="warn">unknown</span>{{else}}-{{end}}{{end}}</td>
+                    <td>{{with .ConsumerGroup}}{{.Value}} <small>({{.Source}})</small>{{else}}-{{end}}</td>
+                    <td>{{with .Profile}}<span class="profile profile-{{.Status}}">{{.Status}}</span>{{if .ConfigMap}}<br><small>{{.ConfigMap}}{{if .Key}} / {{.Key}}{{end}}</small>{{end}}{{if .Message}}<br><small>{{.Message}}</small>{{end}}{{else}}-{{end}}</td>
+                    <td>{{if or .StartProblems .Notes}}
+                        <details>
+                            <summary>{{add (len .StartProblems) (len .Notes)}}</summary>
+                            <ul>
+                                {{range .StartProblems}}<li class="error">{{.}}</li>{{end}}
+                                {{range .Notes}}<li>{{.}}</li>{{end}}
+                            </ul>
+                        </details>
+                    {{end}}</td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
+            </div>
+        </section>
+{{end}}
+{{template "foot" .}}{{end}}

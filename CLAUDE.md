@@ -56,9 +56,21 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 | `internal/kube/` | clientset from `KUBECONFIG` or in-cluster |
 | `internal/discovery/` | Deployments → components: kind, role, streams, consumer group, notes; profile path → volume mount → ConfigMap key → parsed with homerun-library `routing`; `RoutingComponents()` for DryRun/BuildMatrix/Check |
 | `internal/api/` | JSON API over the snapshot (see below) |
+| `internal/web/` | HTML pages: overview, matrix, dry run (`embed` templates, vendored htmx 2.0.4, Pico CSS) |
+| `internal/fixture/` | fake-cluster fixtures for tests of `api` and `web` (imported by tests only) |
 | `internal/snapshot/` | TTL cache over discovery: concurrent requests share one rebuild, a failed rebuild keeps the last good snapshot and is not retried within the TTL |
 | `internal/banner/` | animated TUI startup banner |
 | `dagger/main.go` | CI functions: Lint, Govulncheck, Test, SmokeTest, Build, BuildImage, ScanImage |
+
+## Pages
+
+| Path | Shows |
+|---|---|
+| `/` | findings grouped by kind, streams (who publishes, who reads; unread streams highlighted), components |
+| `/matrix?stream=` | severity × system for one stream; a missing reaction to a must-react severity is a highlighted gap |
+| `/dryrun` | form → what every catcher would do; htmx swaps the result in place, a plain POST renders the full page |
+
+Server-rendered; everything works without JavaScript. No snapshot is a `503` page saying why.
 
 ## API
 

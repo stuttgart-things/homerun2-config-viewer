@@ -93,17 +93,11 @@ type DryRunRequest struct {
 	Message homerun.Message `json:"message"`
 }
 
-// DryRunResponse is the answer to POST /api/dryrun.
+// DryRunResponse is the answer to POST /api/dryrun: the snapshot meta and
+// discovery.DryRunResult, flattened.
 type DryRunResponse struct {
-	Meta    Meta            `json:"meta"`
-	Stream  string          `json:"stream"`
-	Message homerun.Message `json:"message"`
-	// Pitchers are the routed pitchers publishing to the stream.
-	Pitchers []string `json:"pitchers"`
-	// ReachesNobody: no catcher reads the stream. That is an answer, not an
-	// error - it is the failure the viewer exists to show.
-	ReachesNobody bool               `json:"reachesNobody"`
-	Deliveries    []routing.Delivery `json:"deliveries"`
+	Meta Meta `json:"meta"`
+	discovery.DryRunResult
 }
 
 type errorResponse struct {
@@ -177,30 +171,7 @@ func (s *Server) dryRun(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	comps := snap.Result.RoutingComponents()
-
-	resp := DryRunResponse{
-		Meta:          metaOf(&snap),
-		Stream:        req.Stream,
-		Message:       req.Message,
-		Pitchers:      []string{},
-		ReachesNobody: true,
-		Deliveries:    routing.DryRun(comps, req.Stream, req.Message),
-	}
-	for i := range comps {
-		if comps[i].Role == routing.RolePitcher && slices.Contains(comps[i].Streams, req.Stream) {
-			resp.Pitchers = append(resp.Pitchers, comps[i].Name)
-		}
-	}
-	for _, d := range resp.Deliveries {
-		if d.Receives {
-			resp.ReachesNobody = false
-		}
-	}
-	if resp.Deliveries == nil {
-		resp.Deliveries = []routing.Delivery{}
-	}
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, DryRunResponse{Meta: metaOf(&snap), DryRunResult: snap.Result.DryRun(req.Stream, req.Message)})
 }
 
 // decodeDryRun reads exactly one DryRunRequest with known fields only, and a

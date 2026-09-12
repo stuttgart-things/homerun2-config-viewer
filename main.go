@@ -22,6 +22,7 @@ import (
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/handlers"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/kube"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/snapshot"
+	"github.com/stuttgart-things/homerun2-config-viewer/internal/web"
 )
 
 // Set by ldflags at build time (see .ko.yaml).
@@ -73,36 +74,56 @@ func main() {
 
 // run serves the HTTP endpoints on cfg.HTTPPort until ctx is done.
 func run(ctx context.Context, cfg config.Config, info handlers.BuildInfo) error {
+	apiServer, webServer, err := newServers(cfg, info)
+	if err != nil {
+		return err
+	}
 	var lc net.ListenConfig
 	ln, err := lc.Listen(ctx, "tcp", ":"+cfg.HTTPPort)
 	if err != nil {
 		return fmt.Errorf("listen on :%s: %w", cfg.HTTPPort, err)
 	}
-	return serve(ctx, ln, newMux(info, newAPI(cfg)))
+	return serve(ctx, ln, newMux(info, apiServer, webServer))
 }
 
-// newAPI wires the Kubernetes client, discovery and the snapshot cache into
-// the API. A client that cannot be built - no KUBECONFIG outside a cluster -
-// does not stop the service: /healthz still answers, and every API call
-// reports the error instead of an empty namespace.
-func newAPI(cfg config.Config) *api.Server {
+// newServers wires the Kubernetes client, discovery and one snapshot cache
+// into the API and the web UI. A client that cannot be built - no KUBECONFIG
+// outside a cluster - does not stop the service: /healthz still answers, and
+// the API and pages report the error instead of an empty namespace.
+func newServers(cfg config.Config, info handlers.BuildInfo) (apiServer *api.Server, webServer *web.Server, err error) {
 	var build snapshot.BuildFunc
-	client, err := kube.NewClientset(cfg.Kubeconfig)
-	if err != nil {
-		slog.Warn("kubernetes client unavailable, the API reports it", "error", err)
-		build = func(context.Context) (*discovery.Result, error) { return nil, err }
+	client, clientErr := kube.NewClientset(cfg.Kubeconfig)
+	if clientErr != nil {
+		slog.Warn("kubernetes client unavailable, the API and UI report it", "error", clientErr)
+		build = func(context.Context) (*discovery.Result, error) { return nil, clientErr }
 	} else {
 		d := &discovery.Discoverer{Client: client, Namespace: cfg.Namespace, LabelSelector: cfg.LabelSelector}
 		build = d.Discover
 	}
-	return api.New(snapshot.New(build, cfg.CacheTTL), cfg.MustReactSeverities)
+
+	cache := snapshot.New(build, cfg.CacheTTL)
+	webServer, err = web.New(cache, web.Options{
+		Namespace:           cfg.Namespace,
+		LabelSelector:       cfg.LabelSelector,
+		MustReactSeverities: cfg.MustReactSeverities,
+		Build:               info,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return api.New(cache, cfg.MustReactSeverities), webServer, nil
 }
 
-func newMux(info handlers.BuildInfo, apiServer *api.Server) *http.ServeMux {
+// routes is a server that adds its routes to a mux.
+type routes interface {
+	Register(mux *http.ServeMux)
+}
+
+func newMux(info handlers.BuildInfo, servers ...routes) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", handlers.NewHealthHandler(info))
-	if apiServer != nil {
-		apiServer.Register(mux)
+	for _, s := range servers {
+		s.Register(mux)
 	}
 	return mux
 }

@@ -119,8 +119,8 @@ func (m *Dagger) Build(
 }
 
 // SmokeTest builds the binary, starts it and checks that /healthz answers and
-// that the API, with no cluster to read, reports that as 503 rather than an
-// empty namespace. The viewer needs no cluster to start - only to show
+// that the API and the overview page, with no cluster to read, report that as
+// 503 rather than an empty namespace. The viewer needs no cluster to start - only to show
 // something - so this catches a binary that does not start or does not serve,
 // without one.
 func (m *Dagger) SmokeTest(
@@ -162,9 +162,11 @@ done
 [ -n "$healthy" ] || { echo "viewer did not answer /healthz within 30s" >&2; exit 1; }
 
 # busybox wget reports a non-2xx answer as "server returned error: HTTP/1.1 503 ..."
-status=$(wget -S -qO /dev/null http://viewer:8080/api/components 2>&1 | grep -o 'HTTP/1\.[01] [0-9][0-9][0-9]' | awk '{print $2}' | tail -1)
-echo "/api/components without a cluster: HTTP $status"
-[ "$status" = "503" ] || { echo "want 503 from the API without a cluster" >&2; exit 1; }
+for path in /api/components /; do
+  status=$(wget -S -qO /dev/null "http://viewer:8080$path" 2>&1 | grep -o 'HTTP/1\.[01] [0-9][0-9][0-9]' | awk '{print $2}' | tail -1)
+  echo "$path without a cluster: HTTP $status"
+  [ "$status" = "503" ] || { echo "want 503 from $path without a cluster" >&2; exit 1; }
+done
 `}).
 		Stdout(ctx)
 }

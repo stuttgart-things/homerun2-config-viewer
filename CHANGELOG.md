@@ -1,3 +1,12 @@
+# [0.2.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.1.0...v0.2.0) (2026-09-12)
+
+
+### Features
+
+* dry run from a pitcher ([#30](https://github.com/stuttgart-things/homerun2-config-viewer/issues/30)) ([60f2df8](https://github.com/stuttgart-things/homerun2-config-viewer/commit/60f2df8818f9f4458f05b665c80de4c32ed01cc8)), closes [#26](https://github.com/stuttgart-things/homerun2-config-viewer/issues/26)
+* pitchers that pitch over HTTP to omni-pitcher ([#29](https://github.com/stuttgart-things/homerun2-config-viewer/issues/29)) ([fd083b0](https://github.com/stuttgart-things/homerun2-config-viewer/commit/fd083b0a667b8fc00ca25d2082580010a7158a44)), closes [#25](https://github.com/stuttgart-things/homerun2-config-viewer/issues/25)
+* resolve omni-pitcher's ROUTES_CONFIG ([#27](https://github.com/stuttgart-things/homerun2-config-viewer/issues/27)) ([39e59f6](https://github.com/stuttgart-things/homerun2-config-viewer/commit/39e59f6d52ba5d145368d4b6b892b1780d176509)), closes [#9](https://github.com/stuttgart-things/homerun2-config-viewer/issues/9) [#24](https://github.com/stuttgart-things/homerun2-config-viewer/issues/24)
+
 # [0.1.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.0.0...v0.1.0) (2026-09-12)
 
 

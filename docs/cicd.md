@@ -23,14 +23,16 @@
 | Push PR Kustomize OCI | PR | kustomize base `ghcr.io/…-kustomize:pr-<n>-<sha>` |
 | Run Repository Linting | push/PR | YAML and Markdown linting |
 | Cleanup PR Artifacts | PR closed | deletes the PR-tagged image and kustomize versions |
-| Release | **manual** (until v1) | semantic-release; image with version tag and `:latest`; kustomize base with the version pinned |
+| Release | after a successful image build on main (or by hand) | semantic-release; image with version tag and `:latest`; kustomize base with the version pinned |
 | Deploy Pages | after Release | TechDocs site |
 
 ### Release
 
 Releases follow conventional commits: `feat:` → minor, `fix:` → patch.
 
-The Release workflow runs by hand (`task trigger-release`) until v1 is complete (#11), so the unfinished viewer is not published as v1.0.0. After that it switches to running after every successful image build on main, as in the other homerun2 services.
+The Release workflow runs after every successful image build on main, as in the other homerun2 services: a merge with `feat:` or `fix:` commits is released right away. `task trigger-release` starts it by hand, for example to retry a failed run. It ran by hand only until v1 was complete (#11), so the unfinished viewer was not published as v1.0.0.
+
+The image's build date (`/healthz` `date`) comes from `BUILD_DATE`, which the release and ko-build workflow templates set; `.ko.yaml` falls back to `DATE`, then `unknown`.
 
 ## Local checks before a PR
 

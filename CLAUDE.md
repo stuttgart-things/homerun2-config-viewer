@@ -15,7 +15,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 - **Build**: ko (`.ko.yaml`), no Dockerfile
 - **CI**: Dagger module (`dagger/`), Taskfile
 - **Deploy**: KCL manifests (`kcl/`), Kustomize OCI base
-- **Infra**: GitHub Actions, semantic-release. The Release workflow is manual-only until v1 is complete (#11); it then switches to running after every image build on main, as in the sibling services.
+- **Infra**: GitHub Actions, semantic-release. The Release workflow runs after every successful image build on main, as in the sibling services, so a merged `feat:` or `fix:` is released.
 
 ## Git Workflow
 

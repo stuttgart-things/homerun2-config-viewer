@@ -1,15 +1,13 @@
 ---
 name: Release
 on:
-  # Manual only until v1 is feature-complete (#11): semantic-release would
-  # otherwise publish an unfinished viewer as v1.0.0 on the next merge. Switch
-  # to the workflow_run trigger below, as the sibling services use, when #9 is
-  # done.
-  #
-  # workflow_run:
-  #   workflows: ["Build, Push & Scan Container Image"]
-  #   types: [completed]
-  #   branches: [main]
+  # After every successful image build on main, as in the sibling services:
+  # semantic-release cuts a version when feat or fix commits landed. It ran by
+  # hand until v1 was complete (#11); workflow_dispatch stays for re-runs.
+  workflow_run:
+    workflows: ["Build, Push & Scan Container Image"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

@@ -65,3 +65,10 @@ table.matrix th code { white-space: nowrap; }
 .build-footer { background: #1e293b; color: #475569; padding: 0.6rem 1.5rem; margin-top: 1rem; display: flex; gap: 1.5rem; font-size: 0.75rem; border-top: 1px solid #334155; flex-wrap: wrap; }
 .build-footer .label { color: #64748b; }
 .build-footer .value { color: #818cf8; }
+
+/* dry run from a pitcher: one block per way the message leaves it */
+.pitch-path {
+    border-left: 3px solid var(--pico-muted-border-color);
+    padding-left: 1rem;
+    margin-bottom: 1.5rem;
+}

@@ -336,8 +336,18 @@ func defaultStream(res *discovery.Result) string {
 
 // Dry run
 
+// Dry-run targets: a message published to a stream, or sent by a pitcher.
+const (
+	targetStream  = "stream"
+	targetPitcher = "pitcher"
+)
+
 type dryRunForm struct {
+	// Target is targetPitcher for a dry run from a pitcher; anything else is
+	// one to a stream.
+	Target   string
 	Stream   string
+	Pitcher  string
 	Title    string
 	Message  string
 	Severity string
@@ -350,25 +360,35 @@ type dryRunPage struct {
 	page
 	Form       dryRunForm
 	Streams    []string
+	Pitchers   []string
 	Severities []string
 	Systems    []string
 	FormError  string
-	Result     *discovery.DryRunResult
+	// Result answers a dry run to a stream, PitchResult one from a pitcher.
+	Result      *discovery.DryRunResult
+	PitchResult *discovery.PitchDryRun
 }
 
 func (s *Server) dryRunForm(w http.ResponseWriter, r *http.Request) {
 	p, res := s.newPage(r.Context(), "dryrun", "Dry run")
+	q := r.URL.Query()
 	data := dryRunPage{
-		page:       p,
-		Form:       dryRunForm{Stream: strings.TrimSpace(r.URL.Query().Get("stream")), Severity: defaultDryRunSeverity},
+		page: p,
+		Form: dryRunForm{
+			Target: targetStream, Stream: strings.TrimSpace(q.Get("stream")), Pitcher: strings.TrimSpace(q.Get("pitcher")),
+			Severity: defaultDryRunSeverity,
+		},
 		Severities: routing.Severities,
+	}
+	if data.Form.Pitcher != "" {
+		data.Form.Target = targetPitcher
 	}
 	if res == nil {
 		s.render(w, http.StatusServiceUnavailable, "dryrun.html", data)
 		return
 	}
 	fillChoices(&data, res)
-	if data.Form.Stream == "" {
+	if data.Form.Stream == "" && data.Form.Target == targetStream {
 		data.Form.Stream = defaultStream(res)
 	}
 	s.render(w, http.StatusOK, "dryrun.html", data)
@@ -392,7 +412,7 @@ func (s *Server) dryRun(w http.ResponseWriter, r *http.Request) {
 	}
 	field := func(name string) string { return strings.TrimSpace(r.PostFormValue(name)) }
 	data.Form = dryRunForm{
-		Stream: field("stream"), Title: field("title"), Message: field("message"),
+		Target: field("target"), Stream: field("stream"), Pitcher: field("pitcher"), Title: field("title"), Message: field("message"),
 		Severity: field("severity"), System: field("system"), Tags: field("tags"), Author: field("author"),
 	}
 
@@ -401,16 +421,34 @@ func (s *Server) dryRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fillChoices(&data, res)
+	msg := homerun.Message{
+		Title: data.Form.Title, Message: data.Form.Message, Severity: data.Form.Severity,
+		System: data.Form.System, Tags: data.Form.Tags, Author: data.Form.Author,
+	}
+
+	if data.Form.Target == targetPitcher {
+		if data.Form.Pitcher == "" {
+			data.FormError = "pitcher is required"
+			s.renderDryRun(w, htmx, http.StatusBadRequest, &data)
+			return
+		}
+		result, err := res.DryRunFrom(data.Form.Pitcher, msg, s.now())
+		if err != nil {
+			data.FormError = err.Error()
+			s.renderDryRun(w, htmx, http.StatusBadRequest, &data)
+			return
+		}
+		data.PitchResult = &result
+		s.renderDryRun(w, htmx, http.StatusOK, &data)
+		return
+	}
+
 	if data.Form.Stream == "" {
 		data.FormError = "stream is required"
 		s.renderDryRun(w, htmx, http.StatusBadRequest, &data)
 		return
 	}
-
-	result := res.DryRun(data.Form.Stream, homerun.Message{
-		Title: data.Form.Title, Message: data.Form.Message, Severity: data.Form.Severity,
-		System: data.Form.System, Tags: data.Form.Tags, Author: data.Form.Author,
-	})
+	result := res.DryRun(data.Form.Stream, msg)
 	data.Result = &result
 	s.renderDryRun(w, htmx, http.StatusOK, &data)
 }
@@ -431,6 +469,11 @@ func (s *Server) renderDryRun(w http.ResponseWriter, htmx bool, status int, data
 
 func fillChoices(data *dryRunPage, res *discovery.Result) {
 	data.Streams = res.Streams()
+	for i := range res.Components {
+		if res.Components[i].Role == routing.RolePitcher {
+			data.Pitchers = append(data.Pitchers, res.Components[i].Name)
+		}
+	}
 	for _, c := range res.RoutingComponents() {
 		if c.Profile == nil {
 			continue

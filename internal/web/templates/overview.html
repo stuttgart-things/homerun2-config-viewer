@@ -45,7 +45,7 @@
                 <tbody>
                 {{range .Components}}
                 <tr>
-                    <td><strong>{{.Name}}</strong><br><small>{{.Kind}}{{if .Image}} · {{.Image}}{{end}}</small></td>
+                    <td><strong>{{.Name}}</strong>{{if eq .Role "pitcher"}} <small><a href="/dryrun?pitcher={{.Name}}">dry run</a></small>{{end}}<br><small>{{.Kind}}{{if .Image}} · {{.Image}}{{end}}</small></td>
                     <td>{{if .Role}}{{.Role}}{{else}}<small>not routed</small>{{end}}{{if not .Running}}<br><small class="warn">scaled to zero</small>{{end}}</td>
                     <td>{{range .Streams}}<code>{{.}}</code> {{else}}{{if .StreamsUnresolved}}<span class="warn">unknown</span>{{else}}{{if not .PitchTarget}}-{{end}}{{end}}{{end}}{{with .PitchTarget}}{{if .OmniPitcher}}<br><small>→ {{.OmniPitcher}} <code>{{.Path}}</code>{{range .Streams}} <code>{{.}}</code>{{end}}</small>{{else}}<br><small>→ {{.URL}}</small>{{end}}{{with .Problem}}<br><small class="warn">{{.}}</small>{{end}}{{end}}</td>
                     <td>{{with .ConsumerGroup}}{{.Value}} <small>({{.Source}})</small>{{else}}-{{end}}</td>

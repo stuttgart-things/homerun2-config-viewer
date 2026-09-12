@@ -197,6 +197,39 @@ func TestDryRun(t *testing.T) {
 	}
 }
 
+func TestDryRun_FromPitcher(t *testing.T) {
+	mux := fixtureMux(t)
+
+	// omni-pitcher fills in author, timestamp and system, then publishes to
+	// its REDIS_STREAM.
+	resp := decode[PitchDryRunResponse](t, do(t, mux, http.MethodPost, "/api/dryrun",
+		`{"pitcher":" omni ","message":{"title":"Build failed","message":"m","severity":"error"}}`), http.StatusOK)
+	if resp.Pitcher != "omni" || len(resp.Paths) != 1 {
+		t.Fatalf("omni: %+v", resp)
+	}
+	checkOmniPitchPath(t, resp.Paths[0])
+
+	// demo-pitcher writes homerun itself, as entered: nobody reads it.
+	resp = decode[PitchDryRunResponse](t, do(t, mux, http.MethodPost, "/api/dryrun",
+		`{"pitcher":"demo","message":{"severity":"error"}}`), http.StatusOK)
+	if len(resp.Paths) != 1 || resp.Paths[0].Via != "" || resp.Paths[0].Result == nil || !resp.Paths[0].Result.ReachesNobody ||
+		resp.Paths[0].Result.Stream != "homerun" {
+		t.Errorf("demo: %+v", resp)
+	}
+}
+
+func checkOmniPitchPath(t *testing.T, p discovery.PitchPath) {
+	t.Helper()
+	var defaulted []string
+	for _, f := range p.Defaulted {
+		defaulted = append(defaulted, f.Field)
+	}
+	if p.Via != "omni" || p.Endpoint != "/pitch" || p.Result == nil || p.Result.Stream != "messages" || p.Result.ReachesNobody ||
+		p.Result.Message.System != "homerun2-omni-pitcher" || !slices.Equal(defaulted, []string{"author", "timestamp", "system"}) {
+		t.Errorf("omni path: %+v", p)
+	}
+}
+
 func TestDryRun_Validation(t *testing.T) {
 	mux := fixtureMux(t)
 	cases := []struct {
@@ -207,8 +240,10 @@ func TestDryRun_Validation(t *testing.T) {
 		{"not JSON", `{"stream":`, http.StatusBadRequest, "invalid request body"},
 		{"unknown field", `{"stream":"messages","severity":"error"}`, http.StatusBadRequest, `unknown field "severity"`},
 		{"unknown message field", `{"stream":"messages","message":{"level":"error"}}`, http.StatusBadRequest, `unknown field "level"`},
-		{"no stream", `{"message":{"severity":"error"}}`, http.StatusBadRequest, "stream is required"},
-		{"blank stream", `{"stream":"  "}`, http.StatusBadRequest, "stream is required"},
+		{"no stream", `{"message":{"severity":"error"}}`, http.StatusBadRequest, "stream or pitcher is required"},
+		{"blank stream", `{"stream":"  ","pitcher":" "}`, http.StatusBadRequest, "stream or pitcher is required"},
+		{"stream and pitcher", `{"stream":"messages","pitcher":"omni"}`, http.StatusBadRequest, "mutually exclusive"},
+		{"not a pitcher", `{"pitcher":"core"}`, http.StatusBadRequest, `pitcher "core": not a pitcher in the namespace homerun2`},
 		{"two objects", `{"stream":"messages"}{"stream":"x"}`, http.StatusBadRequest, "single JSON object"},
 		{"too large", `{"stream":"messages","message":{"message":"` + strings.Repeat("x", MaxDryRunBody) + `"}}`,
 			http.StatusRequestEntityTooLarge, "larger than"},

@@ -41,7 +41,12 @@ Without `stream`, the page shows the first stream a catcher reads.
 
 ![Dry run](images/dryrun.png)
 
-Enter a stream and a message (severity, system, title, author, tags, message text). The result lists, per catcher, whether it receives the message, whether it shares its consumer group, and what it does. When no catcher reads the stream, the result says **"This message reaches nobody"**.
+Enter a message (severity, system, title, author, tags, message text), and either the stream it is published to or the pitcher that sends it.
+
+- **Published to a stream:** the result lists, per catcher, whether it receives the message, whether it shares its consumer group, and what it does. When no catcher reads the stream, the result says **"This message reaches nobody"**.
+- **Sent by a pitcher:** one block per way the pitcher publishes. A pitcher that writes to a stream itself publishes the message as typed. A pitch to omni-pitcher goes through what omni-pitcher's `/pitch` does: it is **rejected** without title or message text, empty fields are **filled in** (`severity` info, `author` unknown, `timestamp`, `system` `homerun2-omni-pitcher`), and `ROUTES_CONFIG` picks the stream, naming the rule. demo-pitcher with `PITCH_TARGET=both` has two blocks. A pitcher whose target the viewer cannot follow says why.
+
+Every pitcher on the overview links to its dry run.
 
 Nothing is published. With JavaScript, htmx swaps the result in place; without it, the form posts and the full page renders.
 
@@ -63,6 +68,7 @@ All endpoints return JSON with a `meta` object:
 | `GET /api/streams` | `streams`: `stream`, `pitchers` (`name`, `via`, `when`), `catchers` (`name`, `consumerGroup`) |
 | `GET /api/matrix?stream=<s>[&severities=a,b]` | `matrix`: `catchers`, `systems`, `severities`, `cells` with `deliveries` per catcher |
 | `POST /api/dryrun` | body `{"stream": "...", "message": {...}}` → `pitchers`, `reachesNobody`, `deliveries` (`component`, `receives`, `sharedWith`, `reactions`) |
+| `POST /api/dryrun` | body `{"pitcher": "...", "message": {...}}` → `pitcher`, `paths` (`via`, `endpoint`, `problem`, `rejected`, `defaulted` (`field`, `value`), `rule`, `result` as above, with the message as published), `notes` |
 | `GET /healthz` | `{"status":"healthy", "version", "commit", "date", "time"}`; does not call the Kubernetes API |
 
 ### Examples for the integration stage
@@ -75,6 +81,11 @@ curl -s $VIEWER/api/findings | jq -e '.findings | length == 0'
 
 # Who reads the stream a pitcher is configured with?
 curl -s $VIEWER/api/streams | jq '.streams[] | select(.stream == "messages")'
+
+# What does omni-pitcher make of a critical alert without a system?
+curl -s -X POST $VIEWER/api/dryrun \
+  -d '{"pitcher":"homerun2-omni-pitcher","message":{"title":"node down","message":"n1","severity":"critical"}}' \
+  | jq '.paths[] | {rule, defaulted, stream: .result.stream, reachesNobody: .result.reachesNobody}'
 
 # What would a critical alert from k8s do?
 curl -s -X POST $VIEWER/api/dryrun \
@@ -91,7 +102,7 @@ The `message` object uses homerun-library's `Message` fields: `title`, `message`
 
 | Status | When |
 |---|---|
-| `400` | `stream` missing or blank; unknown severity; malformed JSON; unknown fields; more than one JSON object |
+| `400` | neither or both of `stream` and `pitcher`; a `pitcher` that is not a pitcher of the namespace; unknown severity; malformed JSON; unknown fields; more than one JSON object |
 | `413` | request body over 64 KiB |
 | `405` | wrong method (with `Allow`) |
 | `503` | no snapshot could be read (no client, RBAC denied, API unreachable since start) |

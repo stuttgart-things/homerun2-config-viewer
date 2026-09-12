@@ -18,6 +18,9 @@ type RoutesRef struct {
 // load, read from its main.go.
 const routesStartEffect = "omni-pitcher exits at startup"
 
+// noRuleMatches describes a message routed to the default stream.
+const noRuleMatches = "no rule matches"
+
 // When returns which messages omni-pitcher sends to stream, one entry per
 // rule choosing it in rule order, then "no rule matches" when stream is the
 // default stream. It is empty when the routes do not name stream.
@@ -39,7 +42,7 @@ func (ref *RoutesRef) WhenOn(stream, endpoint string) []string {
 		}
 	}
 	if ref.Routes.DefaultStream == stream {
-		out = append(out, "no rule matches")
+		out = append(out, noRuleMatches)
 	}
 	return out
 }

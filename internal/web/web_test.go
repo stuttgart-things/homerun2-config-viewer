@@ -159,6 +159,27 @@ routes:
 	)
 }
 
+func TestOverview_HTTPPitchers(t *testing.T) {
+	res, err := fixture.Discover(
+		fixture.Deployment("omni", "api", "img/homerun2-omni-pitcher:1", 1, map[string]string{"REDIS_STREAM": "messages"}),
+		fixture.Deployment("core", "consumer", "img/homerun2-core-catcher:1", 1, nil),
+		fixture.Deployment("demo", "pitcher", "img/homerun2-demo-pitcher:1", 1,
+			map[string]string{"PITCH_TARGET": "omni-pitcher", "OMNI_PITCHER_URL": "http://omni", "OMNI_PITCHER_API_PATH": "pitch"}),
+		fixture.Deployment("demo-generic", "pitcher", "img/homerun2-demo-pitcher:1", 1,
+			map[string]string{"PITCH_TARGET": "omni-pitcher", "OMNI_PITCHER_URL": "http://omni"}),
+	)
+	body := htmlOf(t, get(t, newMux(t, of(t, res, err)), "/"), http.StatusOK)
+	contains(t, body,
+		// streams: demo reaches messages through omni
+		"omni, demo → omni",
+		// components: where each demo-pitcher posts
+		"→ omni <code>/pitch</code> <code>messages</code>",
+		"→ omni <code>/generic</code>", "the pitches are answered 404",
+		// findings
+		"pitch-path-unknown", "where omni-pitcher does not take its messages",
+	)
+}
+
 func TestOverview_SnapshotError(t *testing.T) {
 	mux := newMux(t, stubSnapshots{err: errors.New(`deployments.apps is forbidden: <b>User</b> "x"`)})
 	body := htmlOf(t, get(t, mux, "/"), http.StatusServiceUnavailable)

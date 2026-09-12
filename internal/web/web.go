@@ -176,6 +176,9 @@ var findingKinds = []struct {
 }{
 	{discovery.FindingPodCannotStart, levelError, "the pod cannot start at all"},
 	{routing.FindingUnreadStream, levelError, "a pitcher publishes to a stream no catcher reads - and still reports success"},
+	{discovery.FindingPitchPathUnknown, levelError, "a pitcher posts to a path where omni-pitcher does not take its messages"},
+	{discovery.FindingPitchTargetUnresolved, levelWarn, "a pitcher posts to a URL that is not an omni-pitcher of this namespace"},
+	{discovery.FindingPitchTargetInvalid, levelWarn, "demo-pitcher's PITCH_TARGET is a value it does not know, so it silently uses redis"},
 	{routing.FindingSharedConsumerGroup, levelWarn, "catchers share a consumer group, so each message reaches only one of them"},
 	{routing.FindingUncoveredSeverity, levelWarn, "a catcher with rules does not react to a severity it should"},
 	{routing.FindingBrokenRule, levelWarn, "a rule matches but cannot act as configured"},

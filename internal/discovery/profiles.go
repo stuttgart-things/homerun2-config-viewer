@@ -85,7 +85,7 @@ func (unavailableProfile) Systems() []string { return nil }
 func (r *Result) resolveProfiles() {
 	for i := range r.Components {
 		c := &r.Components[i]
-		if c.ProfilePath == nil {
+		if c.ProfilePath == nil || c.Role != routing.RoleCatcher {
 			continue
 		}
 		c.Profile, c.rules = r.loadProfile(c)

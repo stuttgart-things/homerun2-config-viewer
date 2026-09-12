@@ -41,7 +41,8 @@ type Component struct {
 	StreamValues []Value `json:"streamValues,omitempty"`
 	// ConsumerGroup is set for catchers.
 	ConsumerGroup *Value `json:"consumerGroup,omitempty"`
-	// ProfilePath is set for catchers with a profile.
+	// ProfilePath is set for catchers with a profile, and for k8s-pitcher
+	// (its -profile flag).
 	ProfilePath *Value `json:"profilePath,omitempty"`
 	// Mode is the variable selecting how a pitcher publishes
 	// (demo-pitcher PITCH_TARGET, git- and omni-pitcher PITCHER_MODE).
@@ -51,8 +52,11 @@ type Component struct {
 	// Routes is where omni-pitcher's routing file comes from, whether it
 	// loads, and what it routes where. Set with RoutesPath.
 	Routes *RoutesRef `json:"routes,omitempty"`
-	// Profile is where the catcher's profile comes from and whether it could
-	// be read. Set for catchers with a profile.
+	// PitchTarget is where a pitcher posts over HTTP: demo-pitcher with
+	// PITCH_TARGET omni-pitcher or both, k8s-pitcher with spec.pitcher.addr.
+	PitchTarget *PitchTarget `json:"pitchTarget,omitempty"`
+	// Profile is where the profile comes from and whether it could be read.
+	// Set with ProfilePath.
 	Profile *ProfileRef `json:"profile,omitempty"`
 
 	// StreamsUnresolved: the streams depend on a value the viewer cannot
@@ -132,6 +136,8 @@ func (d *Discoverer) Discover(ctx context.Context) (*Result, error) {
 	slices.SortFunc(res.Components, func(a, b Component) int { return cmp.Compare(a.Name, b.Name) })
 	res.resolveProfiles()
 	res.resolveRoutes()
+	res.resolveK8sPitchers()
+	res.resolvePitchTargets()
 	return res, nil
 }
 
@@ -220,7 +226,8 @@ func resolveCatcher(c *Component, env environment, info kindInfo) {
 func resolvePitcher(c *Component, env environment, info kindInfo) {
 	switch c.Kind {
 	case KindK8sPitcher:
-		c.Notes = append(c.Notes, "k8s-pitcher takes its stream or HTTP target from its profile, which is not resolved yet (#10)")
+		// resolveK8sPitchers takes the stream or HTTP target from the profile.
+		resolveK8sPitcherArgs(c, env)
 		return
 	case KindPitcher:
 		c.Notes = append(c.Notes, "component \"pitcher\" but neither git-pitcher nor demo-pitcher: its default stream is unknown")
@@ -265,8 +272,8 @@ const (
 )
 
 // demoPitcherUsesRedis applies demo-pitcher's PITCH_TARGET switch: redis
-// (default) and both publish to REDIS_STREAM, omni-pitcher pitches over
-// HTTP, file writes a file, and anything else falls back to redis.
+// (default) and both publish to REDIS_STREAM, omni-pitcher and both pitch
+// over HTTP, file writes a file, and anything else falls back to redis.
 func demoPitcherUsesRedis(c *Component, env environment) bool {
 	target := env.lookup("PITCH_TARGET", modeRedis)
 	c.Mode = &target
@@ -276,10 +283,10 @@ func demoPitcherUsesRedis(c *Component, env environment) bool {
 	case modeRedis:
 		return true
 	case modeBoth:
-		c.Notes = append(c.Notes, "PITCH_TARGET=both also pitches over HTTP to omni-pitcher, which is not resolved yet (#10)")
+		c.PitchTarget = demoPitchTarget(env)
 		return true
 	case modeOmniPitcher:
-		c.Notes = append(c.Notes, "PITCH_TARGET=omni-pitcher pitches over HTTP to omni-pitcher, not to a stream; not resolved yet (#10)")
+		c.PitchTarget = demoPitchTarget(env)
 		return false
 	case modeFile:
 		c.Notes = append(c.Notes, "PITCH_TARGET=file writes to a file: publishes to no stream")

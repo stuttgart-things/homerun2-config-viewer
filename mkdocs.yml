@@ -1,0 +1,11 @@
+site_name: Homerun2 Config Viewer
+site_description: Read-only view of which homerun2 alert triggers what in which catcher, collected from the Kubernetes API
+
+nav:
+  - Home: index.md
+  - Pages & API: usage.md
+  - Deployment: deployment.md
+  - CI/CD: cicd.md
+
+plugins:
+  - techdocs-core

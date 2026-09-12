@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.0...v0.2.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* automatic release, build date, matrix LED templates ([#31](https://github.com/stuttgart-things/homerun2-config-viewer/issues/31)) ([6b36ac1](https://github.com/stuttgart-things/homerun2-config-viewer/commit/6b36ac1134378b18067347c60969d1b2889e4a75)), closes [#11](https://github.com/stuttgart-things/homerun2-config-viewer/issues/11)
+
 # [0.2.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.1.0...v0.2.0) (2026-09-12)
 
 

@@ -74,9 +74,28 @@ A `503` page saying *forbidden* means the Role or RoleBinding is missing or in a
 
 ## GitOps
 
-The homerun2 components are deployed from:
+The viewer is deployed like the other homerun2 components.
 
-- **stuttgart-things/flux**, as a component under `apps/homerun2/components/` (an OCIRepository on the kustomize base plus a Kustomization with image and route patches) and a platform Kustomization under `apps/platform/components/`.
-- **stuttgart-things/argocd**, through the `apps/homerun2/install` chart.
+**stuttgart-things/flux** ([flux#439](https://github.com/stuttgart-things/flux/pull/439)):
 
-Apps for the viewer follow the same pattern once the first release is published.
+- `apps/homerun2/components/config-viewer`: an OCIRepository on the kustomize base and a Kustomization that pins the image and deletes the KCL HTTPRoute.
+- `route/`: the Gateway API HTTPRoute.
+- `apps/platform/components/homerun2-config-viewer`: the opt-in bundle component. It waits on `homerun2`.
+
+| Variable | Default |
+|---|---|
+| `HOMERUN2_CONFIG_VIEWER_VERSION` | `v0.1.0` |
+| `HOMERUN2_CONFIG_VIEWER_KUSTOMIZE_VERSION` | `v0.1.0` |
+| `HOMERUN2_CONFIG_VIEWER_HOSTNAME` | `config-viewer` |
+
+**stuttgart-things/argocd** ([argocd#387](https://github.com/stuttgart-things/argocd/pull/387)), in the `apps/homerun2/install` chart:
+
+```yaml
+configViewer:
+  enabled: true
+  version: v0.1.0
+  hostname: config-viewer.example.com
+  inlineHttpRoute: false   # true patches the base's HTTPRoute in place
+```
+
+Neither path needs a Redis Secret or `REDIS_ADDR`. The Application's AppProject must allow `Role` and `RoleBinding`.

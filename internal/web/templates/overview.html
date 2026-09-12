@@ -24,7 +24,7 @@
                 {{range .Streams}}
                 <tr{{if not .Catchers}} class="unread"{{end}}>
                     <td><code>{{.Stream}}</code></td>
-                    <td>{{if .Pitchers}}{{join .Pitchers ", "}}{{else}}<small>no pitcher here</small>{{end}}</td>
+                    <td>{{range $i, $p := .Pitchers}}{{if $i}}, {{end}}{{$p.Name}}{{if $p.When}} <small>({{join $p.When "; "}})</small>{{end}}{{else}}<small>no pitcher here</small>{{end}}</td>
                     <td>{{range $i, $c := .Catchers}}{{if $i}}, {{end}}{{$c.Name}}{{if $c.ConsumerGroup}} <small>({{$c.ConsumerGroup}})</small>{{end}}{{else}}<strong>nobody reads this stream</strong>{{end}}</td>
                     <td><a href="/matrix?stream={{.Stream}}">matrix</a> · <a href="/dryrun?stream={{.Stream}}">dry run</a></td>
                 </tr>
@@ -41,7 +41,7 @@
             <h2>Components <small>({{len .Components}})</small></h2>
             <div class="overflow-auto">
             <table>
-                <thead><tr><th>Deployment</th><th>Role</th><th>Streams</th><th>Consumer group</th><th>Profile</th><th>Notes</th></tr></thead>
+                <thead><tr><th>Deployment</th><th>Role</th><th>Streams</th><th>Consumer group</th><th>Profile / routes</th><th>Notes</th></tr></thead>
                 <tbody>
                 {{range .Components}}
                 <tr>
@@ -49,7 +49,7 @@
                     <td>{{if .Role}}{{.Role}}{{else}}<small>not routed</small>{{end}}{{if not .Running}}<br><small class="warn">scaled to zero</small>{{end}}</td>
                     <td>{{range .Streams}}<code>{{.}}</code> {{else}}{{if .StreamsUnresolved}}<span class="warn">unknown</span>{{else}}-{{end}}{{end}}</td>
                     <td>{{with .ConsumerGroup}}{{.Value}} <small>({{.Source}})</small>{{else}}-{{end}}</td>
-                    <td>{{with .Profile}}<span class="profile profile-{{.Status}}">{{.Status}}</span>{{if .ConfigMap}}<br><small>{{.ConfigMap}}{{if .Key}} / {{.Key}}{{end}}</small>{{end}}{{if .Message}}<br><small>{{.Message}}</small>{{end}}{{else}}-{{end}}</td>
+                    <td>{{with .Profile}}<span class="profile profile-{{.Status}}">{{.Status}}</span>{{if .ConfigMap}}<br><small>{{.ConfigMap}}{{if .Key}} / {{.Key}}{{end}}</small>{{end}}{{if .Message}}<br><small>{{.Message}}</small>{{end}}{{else}}{{with .Routes}}<span class="profile profile-{{.Status}}">routes {{.Status}}</span>{{if .ConfigMap}}<br><small>{{.ConfigMap}}{{if .Key}} / {{.Key}}{{end}}</small>{{end}}{{if .Message}}<br><small>{{.Message}}</small>{{end}}{{with .Routes}}<ol class="routes">{{range .Routes}}<li><code>{{.Stream}}</code> <small>if {{.Match.Summary}}</small></li>{{end}}<li><code>{{.DefaultStream}}</code> <small>otherwise</small></li></ol>{{end}}{{else}}-{{end}}{{end}}</td>
                     <td>{{if or .StartProblems .Notes}}
                         <details>
                             <summary>{{add (len .StartProblems) (len .Notes)}}</summary>

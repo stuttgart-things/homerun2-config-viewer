@@ -18,8 +18,8 @@ Everything is read-only. Every page and response reflects a snapshot of the name
   - `profile-unresolved`
   - `streams-unknown`
   - `scaled-to-zero`
-- **Streams**: the routed pitchers that publish to each stream and the catchers that read it, with their consumer groups. A stream nobody reads is highlighted, and each row links to its matrix and dry run.
-- **Components**: every Deployment matched by the label selector, with kind, role, streams, consumer group (and where the value came from), profile status (ConfigMap / key), start problems and notes.
+- **Streams**: the routed pitchers that publish to each stream and the catchers that read it, with their consumer groups. For omni-pitcher with `ROUTES_CONFIG`, each stream says which rule sends messages there, such as `rule 1: system contains "tabletennis"` or `no rule matches` for the default stream. A stream nobody reads is highlighted, and each row links to its matrix and dry run.
+- **Components**: every Deployment matched by the label selector, with kind, role, streams, consumer group (and where the value came from), profile status (ConfigMap / key), start problems and notes. For omni-pitcher with `ROUTES_CONFIG`, the routing file's status, ConfigMap / key and rules.
 
 ### Matrix — `/matrix?stream=<stream>`
 
@@ -55,9 +55,9 @@ All endpoints return JSON with a `meta` object:
 
 | Method & path | Returns |
 |---|---|
-| `GET /api/components` | `components`: kind, role, replicas, container, image, `streams` and the `streamValues` they came from, `consumerGroup`, `profilePath`, `profile` (`status`, `configMap`, `key`, `message`), `startProblems`, `notes` |
+| `GET /api/components` | `components`: kind, role, replicas, container, image, `streams` and the `streamValues` they came from, `consumerGroup`, `mode`, `profilePath`, `profile` (`status`, `configMap`, `key`, `message`), `routesPath` and `routes` (`status`, `configMap`, `key`, `message`, `routes`), `startProblems`, `notes` |
 | `GET /api/findings` | `mustReactSeverities`, `findings` (`kind`, `component`, `stream`, `rule`, `severities`, `message`) |
-| `GET /api/streams` | `streams`: `stream`, `pitchers`, `catchers` (`name`, `consumerGroup`) |
+| `GET /api/streams` | `streams`: `stream`, `pitchers` (`name`, `when`), `catchers` (`name`, `consumerGroup`) |
 | `GET /api/matrix?stream=<s>[&severities=a,b]` | `matrix`: `catchers`, `systems`, `severities`, `cells` with `deliveries` per catcher |
 | `POST /api/dryrun` | body `{"stream": "...", "message": {...}}` → `pitchers`, `reachesNobody`, `deliveries` (`component`, `receives`, `sharedWith`, `reactions`) |
 | `GET /healthz` | `{"status":"healthy", "version", "commit", "date", "time"}`; does not call the Kubernetes API |

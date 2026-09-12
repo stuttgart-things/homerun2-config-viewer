@@ -62,8 +62,17 @@ func (c *Component) findings() []routing.Finding {
 // StreamUse is who publishes to and who reads one stream.
 type StreamUse struct {
 	Stream   string         `json:"stream"`
-	Pitchers []string       `json:"pitchers"`
+	Pitchers []StreamWriter `json:"pitchers"`
 	Catchers []StreamReader `json:"catchers"`
+}
+
+// StreamWriter is a pitcher publishing to a stream.
+type StreamWriter struct {
+	Name string `json:"name"`
+	// When says which messages the pitcher publishes to the stream: one entry
+	// per omni-pitcher routing rule choosing it, and "no rule matches" for its
+	// default stream. Empty means every message.
+	When []string `json:"when,omitempty"`
 }
 
 // StreamReader is a catcher reading a stream.
@@ -79,14 +88,14 @@ func (r *Result) StreamUses() []StreamUse {
 	comps := r.RoutingComponents()
 	out := []StreamUse{}
 	for _, stream := range r.Streams() {
-		use := StreamUse{Stream: stream, Pitchers: []string{}, Catchers: []StreamReader{}}
+		use := StreamUse{Stream: stream, Pitchers: []StreamWriter{}, Catchers: []StreamReader{}}
 		for i := range comps {
 			if !slices.Contains(comps[i].Streams, stream) {
 				continue
 			}
 			switch comps[i].Role {
 			case routing.RolePitcher:
-				use.Pitchers = append(use.Pitchers, comps[i].Name)
+				use.Pitchers = append(use.Pitchers, StreamWriter{Name: comps[i].Name, When: r.component(comps[i].Name).Routes.When(stream)})
 			case routing.RoleCatcher:
 				use.Catchers = append(use.Catchers, StreamReader{Name: comps[i].Name, ConsumerGroup: comps[i].ConsumerGroup})
 			}
@@ -94,6 +103,17 @@ func (r *Result) StreamUses() []StreamUse {
 		out = append(out, use)
 	}
 	return out
+}
+
+// component returns the component named name. It exists for every name
+// RoutingComponents returns.
+func (r *Result) component(name string) *Component {
+	for i := range r.Components {
+		if r.Components[i].Name == name {
+			return &r.Components[i]
+		}
+	}
+	return &Component{}
 }
 
 // DryRunResult is what a message published to a stream would do.

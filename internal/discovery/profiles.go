@@ -95,7 +95,7 @@ func (r *Result) resolveProfiles() {
 func (r *Result) loadProfile(c *Component) (*ProfileRef, routing.Profile) {
 	ref := &ProfileRef{Path: c.ProfilePath.Value}
 
-	data, perr := r.readProfileFile(c, ref)
+	data, perr := r.readFile(c, c.ProfilePath, ref)
 	if perr != nil {
 		ref.Status = perr.status
 		switch {
@@ -152,11 +152,11 @@ func parseProfile(k Kind, data []byte) (routing.Profile, error) {
 	}
 }
 
-// readProfileFile finds the file a catcher opens: path, then the volume mount
-// holding it, then the ConfigMap volume and the key projected at that path.
-// It records the ConfigMap and key on ref as soon as they are known.
-func (r *Result) readProfileFile(c *Component, ref *ProfileRef) ([]byte, *profileError) {
-	pv := c.ProfilePath
+// readFile finds the file a component opens at the path pv holds: path, then
+// the volume mount holding it, then the ConfigMap volume and the key projected
+// at that path. It records the ConfigMap and key on ref as soon as they are
+// known.
+func (r *Result) readFile(c *Component, pv *Value, ref *ProfileRef) ([]byte, *profileError) {
 	if pv.Unresolved != "" && pv.Source != SourceDefault {
 		return nil, unresolvedf("%s %s", pv.Name, pv.Unresolved)
 	}

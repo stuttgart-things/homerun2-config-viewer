@@ -1,0 +1,10 @@
+config.image: ghcr.io/stuttgart-things/homerun2-config-viewer:latest
+config.namespace: homerun2
+# HTTPRoute lives in the same kustomize apply as the Service so they land
+# atomically (stuttgart-things/argocd#116). Consumers without a Gateway API can
+# drop the HTTPRoute via a kustomize delete patch; the homerun2-install chart
+# patches the parentRef + hostname per env.
+config.httpRouteEnabled: true
+config.httpRouteParentRefName: homerun2-dev-gateway
+config.httpRouteParentRefNamespace: default
+config.httpRouteHostname: homerun2-config-viewer.example.com

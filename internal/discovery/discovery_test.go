@@ -497,6 +497,7 @@ func TestClassify(t *testing.T) {
 		{"pitcher", "homerun2-demo-pitcher", "registry:5000/org/homerun2-git-pitcher@sha256:abc", KindGitPitcher},
 		{"pitcher", "my-git-pitcher", "mirror/pitcher:1", KindGitPitcher},
 		{"pitcher", "p", "mirror/pitcher:1", KindPitcher},
+		{"config-viewer", "homerun2-config-viewer", "", KindConfigViewer},
 		{"", "x", "", KindUnknown},
 	}
 	for _, tc := range cases {
@@ -538,5 +539,13 @@ func TestDiscover_ConfigMapsAreNotFilteredByLabel(t *testing.T) {
 	res := discover(t, configMap("homerun2-omni-pitcher-routes", map[string]string{"routes.yaml": "x"}))
 	if _, ok := res.ConfigMap("homerun2-omni-pitcher-routes"); !ok {
 		t.Error("an unlabelled ConfigMap must be available for profile resolution")
+	}
+}
+
+func TestDiscover_ViewerListsItselfWithoutANote(t *testing.T) {
+	res := discover(t, deployment("homerun2-config-viewer", "config-viewer", "ghcr.io/stuttgart-things/homerun2-config-viewer:latest"))
+	c := component(t, res, "homerun2-config-viewer")
+	if c.Kind != KindConfigViewer || c.Role != "" || c.Routed() || len(c.Notes) != 0 {
+		t.Errorf("the viewer is a known component outside routing, got %+v", c)
 	}
 }

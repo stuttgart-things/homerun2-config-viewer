@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/stuttgart-things/homerun-library/v4/routing"
 )
@@ -20,12 +21,19 @@ const routesStartEffect = "omni-pitcher exits at startup"
 // When returns which messages omni-pitcher sends to stream, one entry per
 // rule choosing it in rule order, then "no rule matches" when stream is the
 // default stream. It is empty when the routes do not name stream.
-func (ref *RoutesRef) When(stream string) []string {
+func (ref *RoutesRef) When(stream string) []string { return ref.WhenOn(stream, "") }
+
+// WhenOn is When for pitches arriving on endpoint: rules whose endpoint
+// matcher it cannot satisfy are left out. An empty endpoint leaves none out.
+func (ref *RoutesRef) WhenOn(stream, endpoint string) []string {
 	if ref == nil || ref.Routes == nil {
 		return nil
 	}
 	var out []string
 	for i, route := range ref.Routes.Routes {
+		if endpoint != "" && route.Match.Endpoint != "" && !strings.Contains(endpoint, route.Match.Endpoint) {
+			continue
+		}
 		if route.Stream == stream {
 			out = append(out, fmt.Sprintf("rule %d: %s", i+1, route.Match.Summary()))
 		}

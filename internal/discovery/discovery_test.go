@@ -125,10 +125,13 @@ func test1() []runtime.Object {
 		deployment("homerun2-core-catcher", "consumer", "ghcr.io/stuttgart-things/homerun2-core-catcher:v1.0.2", configEnvFrom,
 			env("REDIS_STREAM", "messages"), env("CONSUMER_GROUP", "homerun2-core-catcher")),
 		deployment("homerun2-demo-pitcher", "pitcher", "ghcr.io/stuttgart-things/homerun2-demo-pitcher:v2.0.1", configEnvFrom,
-			env("PITCH_TARGET", "omni-pitcher"), env("REDIS_STREAM", "homerun")),
+			env("PITCH_TARGET", "omni-pitcher"), env("REDIS_STREAM", "homerun"),
+			env("OMNI_PITCHER_URL", "http://homerun2-omni-pitcher.homerun2.svc.cluster.local"), env("OMNI_PITCHER_API_PATH", "pitch")),
 		deployment("homerun2-git-pitcher", "pitcher", "ghcr.io/stuttgart-things/homerun2-git-pitcher:v1.0.1", configEnvFrom,
 			env("PITCHER_MODE", "redis"), env("REDIS_STREAM", "messages"), env("WATCH_CONFIG", "/config/watch-profile.yaml")),
-		deployment("homerun2-k8s-pitcher", "watcher", "ghcr.io/stuttgart-things/homerun2-k8s-pitcher:v1.0.1"),
+		deployment("homerun2-k8s-pitcher", "watcher", "ghcr.io/stuttgart-things/homerun2-k8s-pitcher:v1.0.1",
+			args("--profile", "/etc/k8s-pitcher/profile.yaml"), mount("profile", "/etc/k8s-pitcher", ""), cmVolume("profile", "homerun2-k8s-pitcher-profile")),
+		configMap("homerun2-k8s-pitcher-profile", map[string]string{"profile.yaml": test1K8sPitcherProfile}),
 		deployment("homerun2-led-catcher", "led-catcher", "ghcr.io/stuttgart-things/homerun2-led-catcher:v0.7.0", configEnvFrom,
 			env("REDIS_STREAM", "messages"), env("CONSUMER_GROUP", "homerun2-led-catcher"), env("PROFILE_PATH", "/config/profile.yaml")),
 		deployment("homerun2-light-catcher", "light-catcher", "ghcr.io/stuttgart-things/homerun2-light-catcher:v1.0.0", configEnvFrom,
@@ -202,16 +205,10 @@ func groupOf(c *Component) string {
 
 func checkTest1Notes(t *testing.T, res *Result) {
 	t.Helper()
-	demo := component(t, res, "homerun2-demo-pitcher")
-	if demo.Mode == nil || demo.Mode.Value != "omni-pitcher" || !hasNote(demo, "over HTTP to omni-pitcher") {
-		t.Errorf("demo-pitcher on test1 pitches over HTTP, REDIS_STREAM=homerun does not apply: mode %+v, notes %v", demo.Mode, demo.Notes)
-	}
+	checkTest1PitchTargets(t, res)
 	omni := component(t, res, "homerun2-omni-pitcher")
 	if omni.Routes == nil || omni.Routes.Status != ProfileOK || omni.Routes.ConfigMap != "homerun2-omni-pitcher-routes" || len(omni.Notes) != 0 {
 		t.Errorf("omni-pitcher routes = %+v, notes %v", omni.Routes, omni.Notes)
-	}
-	if k8s := component(t, res, "homerun2-k8s-pitcher"); !hasNote(k8s, "profile") {
-		t.Errorf("k8s-pitcher must say its target is not resolved: %v", k8s.Notes)
 	}
 	light := component(t, res, "homerun2-light-catcher")
 	if light.ProfilePath == nil || light.ProfilePath.Value != "/config/profile.yaml" || light.ProfilePath.Source != "env" {
@@ -220,6 +217,20 @@ func checkTest1Notes(t *testing.T, res *Result) {
 
 	if got := res.Streams(); !slices.Equal(got, []string{"messages", "tabletennis"}) {
 		t.Errorf("Streams() = %v", got)
+	}
+}
+
+// checkTest1PitchTargets: demo- and k8s-pitcher pitch over HTTP to
+// omni-pitcher; REDIS_STREAM=homerun does not apply to demo-pitcher.
+func checkTest1PitchTargets(t *testing.T, res *Result) {
+	t.Helper()
+	for _, name := range []string{"homerun2-demo-pitcher", "homerun2-k8s-pitcher"} {
+		c := component(t, res, name)
+		tgt := c.PitchTarget
+		if tgt == nil || tgt.OmniPitcher != "homerun2-omni-pitcher" || tgt.Path != "/pitch" || tgt.Problem != "" ||
+			!slices.Equal(tgt.Streams, []string{"messages", "tabletennis"}) || len(c.Notes) != 0 {
+			t.Errorf("%s: target %+v, notes %v", name, tgt, c.Notes)
+		}
 	}
 }
 
@@ -453,7 +464,7 @@ func TestDiscover_PitcherModes(t *testing.T) {
 		note    string
 	}{
 		{"demo-redis", []string{"s"}, ""},
-		{"demo-both", []string{"s"}, "also pitches over HTTP"},
+		{"demo-both", []string{"s"}, ""},
 		{"demo-file", nil, "writes to a file"},
 		{"demo-http", []string{"s"}, `PITCH_TARGET="http" is not one of`},
 		{"git-file", nil, "writes to a file"},

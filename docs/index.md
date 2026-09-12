@@ -40,8 +40,8 @@ homerun-library routing  DryRun · BuildMatrix · Check
 |---|---|---|---|---|
 | `api` | omni-pitcher | pitcher | `messages`, or the streams its `ROUTES_CONFIG` routes to (nothing with `PITCHER_MODE=file`) | — |
 | `pitcher` | git-pitcher | pitcher | `messages` | — |
-| `pitcher` | demo-pitcher | pitcher | `homerun` (only for `PITCH_TARGET` `redis`/`both`) | — |
-| `watcher` | k8s-pitcher | pitcher | from its profile (not resolved yet) | — |
+| `pitcher` | demo-pitcher | pitcher | `homerun` for `PITCH_TARGET` `redis`/`both`; with `omni-pitcher`/`both` it posts to `OMNI_PITCHER_URL`/`OMNI_PITCHER_API_PATH` (default `http://localhost:4000/generic`) | — |
+| `watcher` | k8s-pitcher | pitcher | its profile's `spec.redis.stream`, or it posts to `spec.pitcher.addr` | `-profile` |
 | `consumer` | core-catcher | catcher | `messages` | none: reacts to everything |
 | `light-catcher` | light-catcher | catcher | `messages` | `PROFILE_PATH` |
 | `led-catcher` | led-catcher | catcher | `messages` | `PROFILE_PATH` |

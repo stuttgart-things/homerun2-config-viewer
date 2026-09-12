@@ -22,22 +22,22 @@ routes:
     stream: tabletennis
 `
 
-// omniPitcher is omni-pitcher as its KCL renders it with routing enabled:
-// ROUTES_CONFIG points into the <name>-routes ConfigMap mounted at
+// omniPitcher is omni-pitcher "omni" as its KCL renders it with routing
+// enabled: ROUTES_CONFIG points into the omni-routes ConfigMap mounted at
 // /config/routing.
-func omniPitcher(name string, opts ...depOpt) *appsv1.Deployment {
+func omniPitcher(opts ...depOpt) *appsv1.Deployment {
 	base := []depOpt{
 		env("ROUTES_CONFIG", "/config/routing/routes.yaml"),
 		env("REDIS_STREAM", "messages"),
 		mount("routes", "/config/routing", ""),
-		cmVolume("routes", name+"-routes"),
+		cmVolume("routes", "omni-routes"),
 	}
-	return deployment(name, "api", "img/homerun2-omni-pitcher:1", append(base, opts...)...)
+	return deployment("omni", "api", "img/homerun2-omni-pitcher:1", append(base, opts...)...)
 }
 
 func TestRoutes_Resolved(t *testing.T) {
 	res := discover(t,
-		omniPitcher("omni"),
+		omniPitcher(),
 		configMap("omni-routes", map[string]string{"routes.yaml": test1RoutesYAML}),
 		deployment("core", "consumer", "img/homerun2-core-catcher:1", env("REDIS_STREAM", "messages")),
 	)
@@ -149,7 +149,7 @@ func TestRoutes_Problems(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			objs := []runtime.Object{omniPitcher("omni", tc.opts...)}
+			objs := []runtime.Object{omniPitcher(tc.opts...)}
 			if tc.cm != nil {
 				objs = append(objs, configMap("omni-routes", tc.cm))
 			}
@@ -213,5 +213,9 @@ func TestRoutesRefWhen(t *testing.T) {
 		if got := ref.When(stream); !slices.Equal(got, want) {
 			t.Errorf("When(%s) = %q, want %q", stream, got, want)
 		}
+	}
+	// Pitches on /pitch never satisfy the /pitch/github endpoint matcher.
+	if got, want := ref.WhenOn("messages", "/pitch"), []string{"no rule matches"}; !slices.Equal(got, want) {
+		t.Errorf("WhenOn(messages, /pitch) = %q, want %q", got, want)
 	}
 }

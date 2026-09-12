@@ -42,6 +42,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 - Rule evaluation belongs in homerun-library `routing`, not here — this service collects and presents
 - Service defaults (stream, consumer group, profile path, publishing modes) live in `internal/discovery/kinds.go` and `discovery.go`, each read from the service's code. When a service changes a default, change it there too
 - What a catcher does when its profile file is missing (`missingProfileEffect` in `internal/discovery/profiles.go`) is read from the catchers' code too: light-catcher lights nothing, led-catcher runs with an empty profile, notification-catcher does not start
+- RBAC stays minimal: `get`/`list` on `deployments` and `configmaps` in the viewer's own namespace. No `secrets`, no `watch`, no ClusterRole. A feature that needs more is a design question, not a rule to add
 - A catcher with a profile path never gets a nil `routing.Profile` — nil means "reacts to every message". A profile that cannot be used gets a stand-in that says why
 - Tests: `go test ./...` — no cluster needed; Kubernetes access is tested with `client-go`'s fake clientset
 - Logging: `log/slog` (JSON/text), NOT pterm
@@ -60,6 +61,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 | `internal/fixture/` | fake-cluster fixtures for tests of `api` and `web` (imported by tests only) |
 | `internal/snapshot/` | TTL cache over discovery: concurrent requests share one rebuild, a failed rebuild keeps the last good snapshot and is not retried within the TTL |
 | `internal/banner/` | animated TUI startup banner |
+| `kcl/` | KCL deployment: Deployment, Service, ServiceAccount, namespace-scoped Role + RoleBinding (get/list deployments and configmaps only), ConfigMap, optional HTTPRoute |
 | `dagger/main.go` | CI functions: Lint, Govulncheck, Test, SmokeTest, Build, BuildImage, ScanImage |
 
 ## Pages
@@ -109,6 +111,9 @@ KUBECONFIG=~/.kube/homerun2-test1 NAMESPACE=homerun2 \
 
 # Lint
 golangci-lint run
+
+# Render the Kubernetes manifests (the profile's flat config.* keys become kcl_options)
+task render-manifests-local
 
 # The CI steps, locally via Dagger
 task lint

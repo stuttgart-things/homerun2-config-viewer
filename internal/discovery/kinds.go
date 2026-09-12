@@ -23,6 +23,7 @@ const (
 	KindNotificationCatcher Kind = "notification-catcher"
 	KindScout               Kind = "scout"
 	KindWLEDMock            Kind = "wled-mock"
+	KindConfigViewer        Kind = "config-viewer"
 	KindUnknown             Kind = "unknown"
 )
 
@@ -94,9 +95,10 @@ var kinds = map[Kind]kindInfo{
 		defaultStream: "alerts", defaultGroup: defaultGroup(KindNotificationCatcher),
 		profileEnv: envConfigPath, profileDefault: defaultNotificationConfig,
 	},
-	KindScout:    {},
-	KindWLEDMock: {},
-	KindUnknown:  {},
+	KindScout:        {},
+	KindWLEDMock:     {},
+	KindConfigViewer: {},
+	KindUnknown:      {},
 }
 
 // componentKinds maps the component label to a kind. "pitcher" is shared by
@@ -110,6 +112,8 @@ var componentKinds = map[string]Kind{
 	componentLabelNotifier:   KindNotificationCatcher,
 	"analytics":              KindScout,
 	"wled-mock":              KindWLEDMock,
+	// The viewer lists itself: it is part-of homerun2 like every component.
+	string(KindConfigViewer): KindConfigViewer,
 }
 
 // classify determines the kind from the component label. For the shared

@@ -11,8 +11,6 @@ jobs:
     uses: stuttgart-things/github-workflow-templates/.github/workflows/call-cleanup-pr-artifacts.yaml@main
     with:
       runs-on: ubuntu-latest
-      # The -kustomize package is added once the KCL deployment (#7) pushes it:
-      # the template fails on a package that does not exist yet.
-      packages: homerun2-config-viewer
+      packages: homerun2-config-viewer,homerun2-config-viewer-kustomize
       dry-run: false
     secrets: inherit # pragma: allowlist secret

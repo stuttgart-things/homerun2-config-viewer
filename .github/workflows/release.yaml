@@ -2,9 +2,9 @@
 name: Release
 on:
   # Manual only until v1 is feature-complete (#11): semantic-release would
-  # otherwise publish the bare scaffold as v1.0.0 on the next merge. Switch to
-  # the workflow_run trigger below, as the sibling services use, when #9 is
-  # done - and set push-kustomize once the KCL deployment (#7) exists.
+  # otherwise publish an unfinished viewer as v1.0.0 on the next merge. Switch
+  # to the workflow_run trigger below, as the sibling services use, when #9 is
+  # done.
   #
   # workflow_run:
   #   workflows: ["Build, Push & Scan Container Image"]
@@ -25,5 +25,16 @@ jobs:
     with:
       runs-on: ubuntu-latest
       stage-image: true
-      push-kustomize: false
+      # Moves :latest onto every release. Without it only the version tag is
+      # written, and :latest - the KCL default image - never exists on ghcr
+      # (homerun2-omni-pitcher#165).
+      image-extra-tags: latest
+      push-kustomize: true
+      kcl-source-dir: kcl
+      kcl-profile-file: tests/kcl-deploy-profile.yaml
+      # Pins the released version into config.image, so the published
+      # kustomize base references a real tag, not the profile's :latest
+      # placeholder (homerun2-omni-pitcher#160).
+      kustomize-image-key: config.image
+      kustomize-oci-repo: ghcr.io/stuttgart-things/homerun2-config-viewer-kustomize
     secrets: inherit # pragma: allowlist secret

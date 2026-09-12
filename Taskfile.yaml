@@ -18,7 +18,11 @@ vars:
   SOURCE_CODE_DIR: "."
   LINT_REPORT_PATH: /tmp/lint-report-{{ .PROJECT }}.txt
   GOVULNCHECK_REPORT_PATH: /tmp/govulncheck-report-{{ .PROJECT }}.txt
-  # KCL rendering and kustomize push arrive with the deployment (#7).
+  DAGGER_KCL_MODULE: github.com/stuttgart-things/dagger/kcl@v0.82.0
+  KCL_SOURCE_DIR: kcl
+  KCL_PROFILE_FILE: tests/kcl-deploy-profile.yaml
+  RENDERED_OUTPUT_PATH: /tmp/rendered-{{ .PROJECT }}.yaml
+  KUSTOMIZE_OCI_REPO: ghcr.io/{{ .ORGA_NAME }}/{{ .PROJECT }}-kustomize
 
 tasks:
   default:
@@ -136,3 +140,55 @@ tasks:
         RUN_ID=$(gh run list --workflow=Release --limit=1 --json databaseId --jq '.[0].databaseId')
         echo "Run: https://github.com/{{ .ORGA_NAME }}/{{ .PROJECT }}/actions/runs/${RUN_ID}"
         gh run watch "${RUN_ID}"
+
+  # === KCL Manifest Rendering ===
+
+  render-manifests-local:
+    desc: Render Kubernetes manifests with local kcl and yq binaries
+    vars:
+      PROFILE: '{{ .PROFILE | default .KCL_PROFILE_FILE }}'
+      DESTINATION: '{{ .DESTINATION | default .RENDERED_OUTPUT_PATH }}'
+    cmds:
+      - |
+        # The profile holds flat config.* keys; kcl -Y wants kcl_options.
+        # This is the conversion the dagger kcl module does.
+        SETTINGS=$(mktemp --suffix=.yaml)
+        yq eval -o=yaml '{"kcl_options": [to_entries | .[] | {"key": .key, "value": .value}]}' {{ .PROFILE }} > "$SETTINGS"
+        kcl run {{ .KCL_SOURCE_DIR }} -Y "$SETTINGS" > {{ .DESTINATION }}
+        rm -f "$SETTINGS"
+        echo "Manifests rendered: {{ .DESTINATION }}"
+
+  render-manifests-quick:
+    desc: Render Kubernetes manifests via Dagger (non-interactive, uses defaults)
+    vars:
+      SOURCE: '{{ .SOURCE | default .KCL_SOURCE_DIR }}'
+      PROFILE: '{{ .PROFILE | default .KCL_PROFILE_FILE }}'
+      DESTINATION: '{{ .DESTINATION | default .RENDERED_OUTPUT_PATH }}'
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_KCL_MODULE }} run \
+          --source "{{ .SOURCE }}" \
+          --parameters-file="{{ .PROFILE }}" \
+          export --path="{{ .DESTINATION }}"
+
+        echo "Manifests rendered: {{ .DESTINATION }}"
+
+  push-kustomize-base:
+    desc: Render and push kustomize base as OCI artifact
+    vars:
+      SOURCE: '{{ .SOURCE | default .KCL_SOURCE_DIR }}'
+      PROFILE: '{{ .PROFILE | default .KCL_PROFILE_FILE }}'
+      TAG:
+        sh: 'gum input --placeholder "Enter version tag (e.g., v1.0.0)" --header "OCI TAG"'
+    cmds:
+      - |
+        dagger call -m {{ .DAGGER_KCL_MODULE }} push-kustomize-base \
+          --source "{{ .SOURCE }}" \
+          --parameters-file="{{ .PROFILE }}" \
+          --address "{{ .KUSTOMIZE_OCI_REPO }}" \
+          --tag "{{ .TAG }}" \
+          --user env:GITHUB_USER \
+          --password env:GITHUB_TOKEN \
+          --progress plain
+
+        echo "OCI artifact pushed: {{ .KUSTOMIZE_OCI_REPO }}:{{ .TAG }}"

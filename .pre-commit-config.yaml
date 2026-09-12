@@ -3,8 +3,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # Vendored files stay byte-identical to upstream.
       - id: trailing-whitespace
+        exclude: ^internal/web/static/htmx\.min\.js$
       - id: end-of-file-fixer
+        exclude: ^internal/web/static/htmx\.min\.js$
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-symlinks

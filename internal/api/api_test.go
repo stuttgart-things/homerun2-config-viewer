@@ -13,77 +13,19 @@ import (
 	"time"
 
 	"github.com/stuttgart-things/homerun-library/v4/routing"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/discovery"
+	"github.com/stuttgart-things/homerun2-config-viewer/internal/fixture"
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/snapshot"
 )
 
-const ns = "homerun2"
-
 var takenAt = time.Date(2026, 9, 11, 14, 0, 0, 0, time.UTC)
 
-const lightProfile = `effects:
-  error:
-    systems: ["*"]
-    severity: [error, critical]
-    fx: Blurz
-    color: sunset
-    endpoint: http://wled
-`
-
-func dep(name, component, image string, replicas int32, env map[string]string, spec func(*corev1.PodSpec)) *appsv1.Deployment {
-	keys := make([]string, 0, len(env))
-	for k := range env {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	c := corev1.Container{Name: name, Image: image}
-	for _, k := range keys {
-		c.Env = append(c.Env, corev1.EnvVar{Name: k, Value: env[k]})
-	}
-	d := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns, Labels: map[string]string{
-			"app.kubernetes.io/part-of": "homerun2",
-			discovery.ComponentLabel:    component,
-		}},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Template: corev1.PodTemplateSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{c}}},
-		},
-	}
-	if spec != nil {
-		spec(&d.Spec.Template.Spec)
-	}
-	return d
-}
-
-// fixture is the homerun2-test1 mix-up from homerun-library#122 - demo-pitcher
-// publishes to "homerun" while every catcher reads "messages" - plus a catcher
-// scaled to zero.
-func fixture(t *testing.T) *discovery.Result {
+// mixup is fixture.Mixup: demo-pitcher on "homerun", catchers on "messages",
+// and a catcher scaled to zero.
+func mixup(t *testing.T) *discovery.Result {
 	t.Helper()
-	withProfile := func(s *corev1.PodSpec) {
-		s.Containers[0].VolumeMounts = []corev1.VolumeMount{{Name: "profile", MountPath: "/config"}}
-		s.Volumes = []corev1.Volume{{Name: "profile", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: "light-profile"},
-		}}}}
-	}
-	objs := []runtime.Object{
-		dep("omni", "api", "img/homerun2-omni-pitcher:1", 1, map[string]string{"REDIS_STREAM": "messages"}, nil),
-		dep("demo", "pitcher", "img/homerun2-demo-pitcher:1", 1, map[string]string{"PITCH_TARGET": "redis", "REDIS_STREAM": "homerun"}, nil),
-		dep("core", "consumer", "img/homerun2-core-catcher:1", 1, map[string]string{"REDIS_STREAM": "messages"}, nil),
-		dep("light", "light-catcher", "img/homerun2-light-catcher:1", 1,
-			map[string]string{"REDIS_STREAM": "messages", "PROFILE_PATH": "/config/profile.yaml"}, withProfile),
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "light-profile", Namespace: ns}, Data: map[string]string{"profile.yaml": lightProfile}},
-		dep("stopped", "consumer", "img/homerun2-core-catcher:1", 0, nil, nil),
-	}
-	d := &discovery.Discoverer{Client: fake.NewClientset(objs...), Namespace: ns, LabelSelector: "app.kubernetes.io/part-of=homerun2"}
-	res, err := d.Discover(context.Background())
+	res, err := fixture.Mixup()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +48,7 @@ func newMux(t *testing.T, snaps Snapshotter) *http.ServeMux {
 
 func fixtureMux(t *testing.T) *http.ServeMux {
 	t.Helper()
-	return newMux(t, stubSnapshots{snap: snapshot.Snapshot{Result: fixture(t), TakenAt: takenAt}})
+	return newMux(t, stubSnapshots{snap: snapshot.Snapshot{Result: mixup(t), TakenAt: takenAt}})
 }
 
 func do(t *testing.T, mux http.Handler, method, target, body string) *httptest.ResponseRecorder {
@@ -134,7 +76,7 @@ func decode[T any](t *testing.T, rec *httptest.ResponseRecorder, wantStatus int)
 func TestComponents(t *testing.T) {
 	resp := decode[ComponentsResponse](t, do(t, fixtureMux(t), http.MethodGet, "/api/components", ""), http.StatusOK)
 
-	if resp.Meta.Namespace != ns || !resp.Meta.TakenAt.Equal(takenAt) || resp.Meta.RefreshError != "" || resp.Meta.RefreshFailedAt != nil {
+	if resp.Meta.Namespace != fixture.Namespace || !resp.Meta.TakenAt.Equal(takenAt) || resp.Meta.RefreshError != "" || resp.Meta.RefreshFailedAt != nil {
 		t.Errorf("meta = %+v", resp.Meta)
 	}
 	var names []string
@@ -310,7 +252,7 @@ func TestSnapshotUnavailable(t *testing.T) {
 func TestRefreshErrorInMeta(t *testing.T) {
 	failedAt := takenAt.Add(time.Minute)
 	mux := newMux(t, stubSnapshots{snap: snapshot.Snapshot{
-		Result: fixture(t), TakenAt: takenAt, RefreshError: errors.New("apiserver unavailable"), RefreshFailedAt: failedAt,
+		Result: mixup(t), TakenAt: takenAt, RefreshError: errors.New("apiserver unavailable"), RefreshFailedAt: failedAt,
 	}})
 
 	resp := decode[ComponentsResponse](t, do(t, mux, http.MethodGet, "/api/components", ""), http.StatusOK)
@@ -323,8 +265,7 @@ func TestRefreshErrorInMeta(t *testing.T) {
 }
 
 func TestEmptyNamespaceEncodesEmptyLists(t *testing.T) {
-	d := &discovery.Discoverer{Client: fake.NewClientset(), Namespace: ns, LabelSelector: "app.kubernetes.io/part-of=homerun2"}
-	res, err := d.Discover(context.Background())
+	res, err := fixture.Discover()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,51 @@
+{{define "matrix.html"}}{{template "head" .}}
+{{if not .Err}}
+        <form method="get" action="/matrix" class="controls">
+            <label for="stream">Stream</label>
+            <select id="stream" name="stream">
+                {{range .Streams}}<option value="{{.}}"{{if eq . $.Stream}} selected{{end}}>{{.}}</option>{{end}}
+            </select>
+            <button type="submit">Show</button>
+        </form>
+
+        {{if not .Stream}}
+        <p>No routed component uses a stream, so there is nothing to show.</p>
+        {{else}}
+        <p class="explain">
+            What each catcher reading <code>{{.Stream}}</code> does with a message carrying only a system and a severity.
+            Rows are the systems a rule names, then <code>(other)</code> for every other system.
+            Rules that also require tags or message text do not match here - use the <a href="/dryrun?stream={{.Stream}}">dry run</a> for a concrete message.
+            A highlighted entry is a catcher that does not react to a severity it should ({{join .MustReact ", "}}).
+        </p>
+        {{if not .Catchers}}
+        <article class="banner banner-error"><strong>No catcher reads {{.Stream}}.</strong> A message published there reaches nobody.</article>
+        {{else}}
+        <div class="overflow-auto">
+        <table class="matrix">
+            <thead>
+                <tr><th>system \ severity</th>{{range .Severities}}<th class="{{severityClass .}}">{{.}}</th>{{end}}</tr>
+            </thead>
+            <tbody>
+            {{range .Rows}}
+            <tr>
+                <th><code>{{.System}}</code></th>
+                {{range .Cells}}
+                <td>
+                    {{range .Entries}}
+                    <div class="entry{{if .Gap}} gap{{end}}{{if .Problem}} problem{{end}}">
+                        <span class="catcher">{{.Catcher}}</span>
+                        {{if .Summary}}{{if .Rule}}<code>{{.Rule}}</code> {{end}}{{.Summary}}{{else}}<em>no reaction</em>{{end}}
+                        {{with .Problem}}<br><small>{{.}}</small>{{end}}
+                    </div>
+                    {{end}}
+                </td>
+                {{end}}
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+        </div>
+        {{end}}
+        {{end}}
+{{end}}
+{{template "foot" .}}{{end}}

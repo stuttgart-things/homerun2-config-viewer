@@ -1,0 +1,63 @@
+{{define "head"}}<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} · HOMERUN² config viewer</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/viewer.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+    <div class="header-bar">
+        <div>
+            <a href="/" style="text-decoration:none;color:inherit">
+                <h1>HOMERUN²</h1>
+                <div class="subtitle">config viewer · {{.Namespace}}</div>
+            </a>
+        </div>
+        <nav class="actions">
+            <a href="/"{{if eq .Page "overview"}} aria-current="page"{{end}}>Overview</a>
+            <a href="/matrix"{{if eq .Page "matrix"}} aria-current="page"{{end}}>Matrix</a>
+            <a href="/dryrun"{{if eq .Page "dryrun"}} aria-current="page"{{end}}>Dry run</a>
+        </nav>
+    </div>
+    <main class="container-fluid">
+        {{template "snapshot-banner" .}}
+{{end}}
+
+{{define "snapshot-banner"}}
+        {{if .Err}}
+        <article class="banner banner-error">
+            <strong>Cannot read the namespace {{.Namespace}}.</strong>
+            <div class="mono">{{.Err}}</div>
+        </article>
+        {{else}}
+        <p class="snapshot">
+            Snapshot of <strong>{{.Namespace}}</strong> <small>({{.LabelSelector}})</small>, taken {{since .TakenAt}} ago.
+            <a href="">Reload</a>
+        </p>
+        {{if .RefreshError}}
+        <article class="banner banner-warn">
+            Latest refresh failed {{since .RefreshFailedAt}} ago - showing the last good snapshot.
+            <div class="mono">{{.RefreshError}}</div>
+        </article>
+        {{end}}
+        {{end}}
+{{end}}
+
+{{define "foot"}}
+    </main>
+    <div class="build-footer">
+        <div style="display:flex;gap:1.5rem">
+            <div><span class="label">version</span> <span class="value">{{.Build.Version}}</span></div>
+            <div><span class="label">commit</span> <span class="value">{{shortCommit .Build.Commit}}</span></div>
+            <div><span class="label">built</span> <span class="value">{{.Build.Date}}</span></div>
+        </div>
+        <div style="margin-left:auto"><span class="label">read-only · nothing on these pages publishes a message</span></div>
+    </div>
+</body>
+</html>
+{{end}}

@@ -4,6 +4,7 @@ package snapshot
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 
 	"github.com/stuttgart-things/homerun2-config-viewer/internal/discovery"
 )
+
+// errNoResult replaces a build that returns neither a result nor an error, so
+// callers never receive a snapshot without one.
+var errNoResult = errors.New("snapshot build returned no result")
 
 // DefaultBuildTimeout bounds one rebuild.
 const DefaultBuildTimeout = 30 * time.Second
@@ -77,6 +82,9 @@ func (c *Cache) Get(ctx context.Context) (Snapshot, error) {
 		buildCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.buildTimeout)
 		defer cancel()
 		res, err := c.build(buildCtx)
+		if err == nil && res == nil {
+			err = errNoResult
+		}
 
 		c.mu.Lock()
 		defer c.mu.Unlock()

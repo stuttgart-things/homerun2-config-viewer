@@ -1,0 +1,50 @@
+{{define "dryrun.html"}}{{template "head" .}}
+{{if not .Err}}
+        <p class="explain">Type a sample message and see what every catcher would do with it. Nothing is published.</p>
+        <form method="post" action="/dryrun" hx-post="/dryrun" hx-target="#dryrun-result" hx-swap="innerHTML">
+            <div class="grid">
+                <label>Stream <input name="stream" list="streams" value="{{.Form.Stream}}" required></label>
+                <label>Severity <input name="severity" list="severities" value="{{.Form.Severity}}"></label>
+                <label>System <input name="system" list="systems" value="{{.Form.System}}" placeholder="e.g. github"></label>
+            </div>
+            <div class="grid">
+                <label>Title <input name="title" value="{{.Form.Title}}"></label>
+                <label>Author <input name="author" value="{{.Form.Author}}"></label>
+                <label>Tags <input name="tags" value="{{.Form.Tags}}" placeholder="comma,separated"></label>
+            </div>
+            <label>Message <textarea name="message" rows="2">{{.Form.Message}}</textarea></label>
+            <button type="submit">Dry run</button>
+            <datalist id="streams">{{range .Streams}}<option value="{{.}}">{{end}}</datalist>
+            <datalist id="severities">{{range .Severities}}<option value="{{.}}">{{end}}</datalist>
+            <datalist id="systems">{{range .Systems}}<option value="{{.}}">{{end}}</datalist>
+        </form>
+{{end}}
+        <div id="dryrun-result">{{template "dryrun-result" .}}</div>
+{{template "foot" .}}{{end}}
+
+{{define "dryrun-result"}}
+{{with .FormError}}<article class="banner banner-error">{{.}}</article>{{end}}
+{{with .Result}}
+        <h3>Published to <code>{{.Stream}}</code></h3>
+        <p>{{if .Pitchers}}Pitchers publishing here: {{join .Pitchers ", "}}.{{else}}No pitcher in the namespace publishes to this stream.{{end}}</p>
+        {{if .ReachesNobody}}
+        <article class="banner banner-error"><strong>This message reaches nobody:</strong> no catcher reads <code>{{.Stream}}</code>. The pitcher would still report success.</article>
+        {{end}}
+        <div class="overflow-auto">
+        <table>
+            <thead><tr><th>Catcher</th><th>Receives</th><th>What it does</th></tr></thead>
+            <tbody>
+            {{range .Deliveries}}
+            <tr{{if not .Receives}} class="muted"{{end}}>
+                <td>{{.Component}}</td>
+                <td>{{if .Receives}}yes{{if .SharedWith}}<br><small class="warn">shares its consumer group with {{join .SharedWith ", "}}: only one of them gets it</small>{{end}}{{else}}no - does not read this stream{{end}}</td>
+                <td>{{if .Receives}}{{range .Reactions}}
+                    <div{{if .Problem}} class="problem"{{end}}>{{if .Rule}}<code>{{.Rule}}</code> {{end}}{{.Summary}}{{with .Problem}}<br><small>{{.}}</small>{{end}}</div>
+                {{else}}<em>ignores the message</em>{{end}}{{end}}</td>
+            </tr>
+            {{end}}
+            </tbody>
+        </table>
+        </div>
+{{end}}
+{{end}}

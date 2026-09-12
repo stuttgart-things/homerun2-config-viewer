@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	homerun "github.com/stuttgart-things/homerun-library/v4"
 	"github.com/stuttgart-things/homerun-library/v4/routing"
 )
 
@@ -93,4 +94,42 @@ func (r *Result) StreamUses() []StreamUse {
 		out = append(out, use)
 	}
 	return out
+}
+
+// DryRunResult is what a message published to a stream would do.
+type DryRunResult struct {
+	Stream  string          `json:"stream"`
+	Message homerun.Message `json:"message"`
+	// Pitchers are the routed pitchers publishing to the stream.
+	Pitchers []string `json:"pitchers"`
+	// ReachesNobody: no catcher reads the stream. That is an answer, not an
+	// error - it is the failure the viewer exists to show.
+	ReachesNobody bool               `json:"reachesNobody"`
+	Deliveries    []routing.Delivery `json:"deliveries"`
+}
+
+// DryRun evaluates msg published to stream against the routed components.
+func (r *Result) DryRun(stream string, msg homerun.Message) DryRunResult {
+	comps := r.RoutingComponents()
+	res := DryRunResult{
+		Stream:        stream,
+		Message:       msg,
+		Pitchers:      []string{},
+		ReachesNobody: true,
+		Deliveries:    routing.DryRun(comps, stream, msg),
+	}
+	for i := range comps {
+		if comps[i].Role == routing.RolePitcher && slices.Contains(comps[i].Streams, stream) {
+			res.Pitchers = append(res.Pitchers, comps[i].Name)
+		}
+	}
+	for _, d := range res.Deliveries {
+		if d.Receives {
+			res.ReachesNobody = false
+		}
+	}
+	if res.Deliveries == nil {
+		res.Deliveries = []routing.Delivery{}
+	}
+	return res
 }

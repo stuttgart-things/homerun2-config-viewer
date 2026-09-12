@@ -245,6 +245,34 @@ func TestDryRunForm(t *testing.T) {
 
 	body = htmlOf(t, get(t, mux, "/dryrun?stream=homerun"), http.StatusOK)
 	contains(t, body, `name="stream" list="streams" value="homerun"`)
+
+	body = htmlOf(t, get(t, mux, "/dryrun?pitcher=omni"), http.StatusOK)
+	contains(t, body, `value="pitcher" checked`, `name="pitcher" list="pitchers" value="omni"`, `name="stream" list="streams" value=""`,
+		`<datalist id="pitchers"><option value="demo"><option value="omni"></datalist>`)
+	lacks(t, body, `value="stream" checked`)
+}
+
+func TestDryRun_FromPitcher(t *testing.T) {
+	mux := mixupMux(t)
+
+	body := htmlOf(t, postDryRun(t, mux, url.Values{"target": {"pitcher"}, "pitcher": {"omni"}, "stream": {"ignored"},
+		"title": {"Build failed"}, "message": {"m"}, "severity": {"critical"}}, true), http.StatusOK)
+	contains(t, body, "Sent by omni", "omni <code>/pitch</code>",
+		"omni fills in <code>author</code> = <code>unknown</code>", "<code>system</code> = <code>homerun2-omni-pitcher</code>",
+		"Published to <code>messages</code>", "<code>error</code> WLED Blurz in sunset")
+	lacks(t, body, "omni → omni", "Published to <code>ignored</code>")
+
+	body = htmlOf(t, postDryRun(t, mux, url.Values{"target": {"pitcher"}, "pitcher": {"omni"}, "severity": {"error"}}, true), http.StatusOK)
+	contains(t, body, "<strong>Rejected:</strong> omni answers 400: title is required. Nothing is published.")
+	lacks(t, body, "Published to")
+
+	body = htmlOf(t, postDryRun(t, mux, url.Values{"target": {"pitcher"}, "pitcher": {"demo"}, "title": {"t"}}, false), http.StatusOK)
+	contains(t, body, "<html", "Sent by demo", "Published to <code>homerun</code>", "This message reaches nobody")
+
+	// A pitcher that publishes nowhere says so.
+	res, err := fixture.Discover(fixture.Deployment("demo", "pitcher", "img/homerun2-demo-pitcher:1", 1, map[string]string{"PITCH_TARGET": "file"}))
+	body = htmlOf(t, postDryRun(t, newMux(t, of(t, res, err)), url.Values{"target": {"pitcher"}, "pitcher": {"demo"}}, true), http.StatusOK)
+	contains(t, body, "demo publishes to no stream the viewer can follow", "PITCH_TARGET=file writes to a file")
 }
 
 func TestDryRun_FullPage(t *testing.T) {
@@ -270,6 +298,11 @@ func TestDryRun_Errors(t *testing.T) {
 	body = htmlOf(t, postDryRun(t, mux, url.Values{"stream": {""}}, true), http.StatusOK)
 	contains(t, body, "stream is required")
 	lacks(t, body, "<html")
+
+	body = htmlOf(t, postDryRun(t, mux, url.Values{"target": {"pitcher"}, "pitcher": {" "}}, true), http.StatusOK)
+	contains(t, body, "pitcher is required")
+	body = htmlOf(t, postDryRun(t, mux, url.Values{"target": {"pitcher"}, "pitcher": {"core"}}, false), http.StatusBadRequest)
+	contains(t, body, "&#34;core&#34;: not a pitcher in the namespace homerun2")
 
 	body = htmlOf(t, postDryRun(t, mux, url.Values{"stream": {"messages"}, "message": {strings.Repeat("x", maxFormBytes)}}, false),
 		http.StatusRequestEntityTooLarge)

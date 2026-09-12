@@ -33,12 +33,13 @@ type Snapshotter interface {
 type Server struct {
 	snapshots Snapshotter
 	mustReact []string
+	now       func() time.Time
 }
 
 // New returns a server reading snapshots from snapshots. mustReact are the
 // severities every catcher with rules is expected to react to.
 func New(snapshots Snapshotter, mustReact []string) *Server {
-	return &Server{snapshots: snapshots, mustReact: mustReact}
+	return &Server{snapshots: snapshots, mustReact: mustReact, now: time.Now}
 }
 
 // Register adds the API routes to mux. Other methods on these paths get 405
@@ -87,17 +88,26 @@ type MatrixResponse struct {
 	Matrix routing.Matrix `json:"matrix"`
 }
 
-// DryRunRequest is the body of POST /api/dryrun.
+// DryRunRequest is the body of POST /api/dryrun: the message, and either the
+// stream it is published to or the pitcher that sends it.
 type DryRunRequest struct {
-	Stream  string          `json:"stream"`
+	Stream  string          `json:"stream,omitempty"`
+	Pitcher string          `json:"pitcher,omitempty"`
 	Message homerun.Message `json:"message"`
 }
 
-// DryRunResponse is the answer to POST /api/dryrun: the snapshot meta and
-// discovery.DryRunResult, flattened.
+// DryRunResponse is the answer to POST /api/dryrun with a stream: the
+// snapshot meta and discovery.DryRunResult, flattened.
 type DryRunResponse struct {
 	Meta Meta `json:"meta"`
 	discovery.DryRunResult
+}
+
+// PitchDryRunResponse is the answer to POST /api/dryrun with a pitcher: the
+// snapshot meta and discovery.PitchDryRun, flattened.
+type PitchDryRunResponse struct {
+	Meta Meta `json:"meta"`
+	discovery.PitchDryRun
 }
 
 type errorResponse struct {
@@ -171,11 +181,20 @@ func (s *Server) dryRun(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, DryRunResponse{Meta: metaOf(&snap), DryRunResult: snap.Result.DryRun(req.Stream, req.Message)})
+	if req.Pitcher == "" {
+		writeJSON(w, http.StatusOK, DryRunResponse{Meta: metaOf(&snap), DryRunResult: snap.Result.DryRun(req.Stream, req.Message)})
+		return
+	}
+	res, err := snap.Result.DryRunFrom(req.Pitcher, req.Message, s.now())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "pitcher "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, PitchDryRunResponse{Meta: metaOf(&snap), PitchDryRun: res})
 }
 
-// decodeDryRun reads exactly one DryRunRequest with known fields only, and a
-// non-empty stream.
+// decodeDryRun reads exactly one DryRunRequest with known fields only, and
+// either a stream or a pitcher.
 func decodeDryRun(w http.ResponseWriter, r *http.Request) (DryRunRequest, int, error) {
 	var req DryRunRequest
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, MaxDryRunBody))
@@ -192,9 +211,12 @@ func decodeDryRun(w http.ResponseWriter, r *http.Request) (DryRunRequest, int, e
 		return req, http.StatusBadRequest, errors.New("request body must be a single JSON object")
 	}
 
-	req.Stream = strings.TrimSpace(req.Stream)
-	if req.Stream == "" {
-		return req, http.StatusBadRequest, errors.New("stream is required")
+	req.Stream, req.Pitcher = strings.TrimSpace(req.Stream), strings.TrimSpace(req.Pitcher)
+	switch {
+	case req.Stream == "" && req.Pitcher == "":
+		return req, http.StatusBadRequest, errors.New("stream or pitcher is required")
+	case req.Stream != "" && req.Pitcher != "":
+		return req, http.StatusBadRequest, errors.New("stream and pitcher are mutually exclusive: a pitcher decides its streams")
 	}
 	return req, http.StatusOK, nil
 }

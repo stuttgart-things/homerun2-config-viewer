@@ -152,13 +152,11 @@ func (r *Result) viaWriters(stream string) []StreamWriter {
 	return out
 }
 
-// component returns the component named name. It exists for every name
-// RoutingComponents returns.
+// component returns the component named name, or an empty one. It exists
+// for every name RoutingComponents returns.
 func (r *Result) component(name string) *Component {
-	for i := range r.Components {
-		if r.Components[i].Name == name {
-			return &r.Components[i]
-		}
+	if c := r.findComponent(name); c != nil {
+		return c
 	}
 	return &Component{}
 }
@@ -167,7 +165,8 @@ func (r *Result) component(name string) *Component {
 type DryRunResult struct {
 	Stream  string          `json:"stream"`
 	Message homerun.Message `json:"message"`
-	// Pitchers are the routed pitchers publishing to the stream.
+	// Pitchers are the routed pitchers publishing to the stream, and those
+	// pitching to an omni-pitcher that publishes to it.
 	Pitchers []string `json:"pitchers"`
 	// ReachesNobody: no catcher reads the stream. That is an answer, not an
 	// error - it is the failure the viewer exists to show.
@@ -189,6 +188,9 @@ func (r *Result) DryRun(stream string, msg homerun.Message) DryRunResult {
 		if comps[i].Role == routing.RolePitcher && slices.Contains(comps[i].Streams, stream) {
 			res.Pitchers = append(res.Pitchers, comps[i].Name)
 		}
+	}
+	for _, w := range r.viaWriters(stream) {
+		res.Pitchers = append(res.Pitchers, w.Name)
 	}
 	for _, d := range res.Deliveries {
 		if d.Receives {

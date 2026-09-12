@@ -1,9 +1,14 @@
 {{define "dryrun.html"}}{{template "head" .}}
 {{if not .Err}}
-        <p class="explain">Type a sample message and see what every catcher would do with it. Nothing is published.</p>
+        <p class="explain">Type a sample message and see what every catcher would do with it: published to a stream, or sent by a pitcher - through omni-pitcher, with what omni-pitcher does to it, when that is where the pitcher pitches. Nothing is published.</p>
         <form method="post" action="/dryrun" hx-post="/dryrun" hx-target="#dryrun-result" hx-swap="innerHTML">
+            <fieldset class="grid">
+                <label><input type="radio" name="target" value="stream"{{if ne .Form.Target "pitcher"}} checked{{end}}> Published to stream
+                    <input name="stream" list="streams" value="{{.Form.Stream}}"></label>
+                <label><input type="radio" name="target" value="pitcher"{{if eq .Form.Target "pitcher"}} checked{{end}}> Sent by pitcher
+                    <input name="pitcher" list="pitchers" value="{{.Form.Pitcher}}"></label>
+            </fieldset>
             <div class="grid">
-                <label>Stream <input name="stream" list="streams" value="{{.Form.Stream}}" required></label>
                 <label>Severity <input name="severity" list="severities" value="{{.Form.Severity}}"></label>
                 <label>System <input name="system" list="systems" value="{{.Form.System}}" placeholder="e.g. github"></label>
             </div>
@@ -15,6 +20,7 @@
             <label>Message <textarea name="message" rows="2">{{.Form.Message}}</textarea></label>
             <button type="submit">Dry run</button>
             <datalist id="streams">{{range .Streams}}<option value="{{.}}">{{end}}</datalist>
+            <datalist id="pitchers">{{range .Pitchers}}<option value="{{.}}">{{end}}</datalist>
             <datalist id="severities">{{range .Severities}}<option value="{{.}}">{{end}}</datalist>
             <datalist id="systems">{{range .Systems}}<option value="{{.}}">{{end}}</datalist>
         </form>
@@ -24,7 +30,24 @@
 
 {{define "dryrun-result"}}
 {{with .FormError}}<article class="banner banner-error">{{.}}</article>{{end}}
-{{with .Result}}
+{{with .Result}}{{template "stream-result" .}}{{end}}
+{{with .PitchResult}}
+        <h3>Sent by {{.Pitcher}}</h3>
+        {{range .Notes}}<p class="warn">{{.}}</p>{{end}}
+        {{range .Paths}}
+        <section class="pitch-path">
+            {{if .Via}}<h4>{{if ne .Via $.PitchResult.Pitcher}}{{$.PitchResult.Pitcher}} → {{end}}{{.Via}} <code>{{.Endpoint}}</code></h4>{{end}}
+            {{with .Problem}}<article class="banner banner-error">{{.}}</article>{{end}}
+            {{with .Rejected}}<article class="banner banner-error"><strong>Rejected:</strong> {{.}}. Nothing is published.</article>{{end}}
+            {{if .Defaulted}}<p>{{.Via}} fills in {{range $i, $f := .Defaulted}}{{if $i}}, {{end}}<code>{{$f.Field}}</code> = <code>{{$f.Value}}</code>{{end}}.</p>{{end}}
+            {{with .Rule}}<p><small>Routed by {{.}}</small></p>{{end}}
+            {{with .Result}}{{template "stream-result" .}}{{end}}
+        </section>
+        {{end}}
+{{end}}
+{{end}}
+
+{{define "stream-result"}}
         <h3>Published to <code>{{.Stream}}</code></h3>
         <p>{{if .Pitchers}}Pitchers publishing here: {{join .Pitchers ", "}}.{{else}}No pitcher in the namespace publishes to this stream.{{end}}</p>
         {{if .ReachesNobody}}
@@ -46,5 +69,4 @@
             </tbody>
         </table>
         </div>
-{{end}}
 {{end}}

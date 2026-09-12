@@ -44,8 +44,13 @@ type Component struct {
 	// ProfilePath is set for catchers with a profile.
 	ProfilePath *Value `json:"profilePath,omitempty"`
 	// Mode is the variable selecting how a pitcher publishes
-	// (demo-pitcher PITCH_TARGET, git-pitcher PITCHER_MODE).
+	// (demo-pitcher PITCH_TARGET, git- and omni-pitcher PITCHER_MODE).
 	Mode *Value `json:"mode,omitempty"`
+	// RoutesPath is omni-pitcher's ROUTES_CONFIG, when set.
+	RoutesPath *Value `json:"routesPath,omitempty"`
+	// Routes is where omni-pitcher's routing file comes from, whether it
+	// loads, and what it routes where. Set with RoutesPath.
+	Routes *RoutesRef `json:"routes,omitempty"`
 	// Profile is where the catcher's profile comes from and whether it could
 	// be read. Set for catchers with a profile.
 	Profile *ProfileRef `json:"profile,omitempty"`
@@ -126,6 +131,7 @@ func (d *Discoverer) Discover(ctx context.Context) (*Result, error) {
 	}
 	slices.SortFunc(res.Components, func(a, b Component) int { return cmp.Compare(a.Name, b.Name) })
 	res.resolveProfiles()
+	res.resolveRoutes()
 	return res, nil
 }
 
@@ -223,14 +229,21 @@ func resolvePitcher(c *Component, env environment, info kindInfo) {
 			return
 		}
 	case KindGitPitcher:
-		if !gitPitcherUsesRedis(c, env) {
+		if !pitcherModeUsesRedis(c, env, KindGitPitcher) {
 			return
 		}
 	case KindOmniPitcher:
-		if routes := env.lookup("ROUTES_CONFIG", ""); routes.Value != "" {
-			c.Notes = append(c.Notes, fmt.Sprintf(
-				"ROUTES_CONFIG=%s can route messages to other streams, which is not resolved yet (#10)", routes.Value))
+		if !pitcherModeUsesRedis(c, env, KindOmniPitcher) {
+			return
 		}
+		// With a routing file, omni-pitcher picks a stream per message and
+		// REDIS_STREAM no longer applies. resolveRoutes sets the streams.
+		routes := env.lookup("ROUTES_CONFIG", "")
+		if routes.Value != "" || routes.Unresolved != "" && routes.Source != SourceDefault {
+			c.RoutesPath = &routes
+			return
+		}
+		noteUnresolved(c, routes)
 	}
 
 	stream := env.lookup("REDIS_STREAM", info.defaultStream)
@@ -242,7 +255,7 @@ func resolvePitcher(c *Component, env environment, info kindInfo) {
 	setStreams(c, streams, stream)
 }
 
-// Publishing modes of demo-pitcher's PITCH_TARGET and git-pitcher's
+// Publishing modes of demo-pitcher's PITCH_TARGET and git- and omni-pitcher's
 // PITCHER_MODE.
 const (
 	modeRedis       = "redis"
@@ -278,9 +291,9 @@ func demoPitcherUsesRedis(c *Component, env environment) bool {
 	}
 }
 
-// gitPitcherUsesRedis applies git-pitcher's PITCHER_MODE switch: file writes
-// a file, anything else publishes to Redis.
-func gitPitcherUsesRedis(c *Component, env environment) bool {
+// pitcherModeUsesRedis applies the PITCHER_MODE switch git- and omni-pitcher
+// share: file writes a file, anything else publishes to Redis.
+func pitcherModeUsesRedis(c *Component, env environment, kind Kind) bool {
 	mode := env.lookup("PITCHER_MODE", modeRedis)
 	c.Mode = &mode
 	noteUnresolved(c, mode)
@@ -292,7 +305,7 @@ func gitPitcherUsesRedis(c *Component, env environment) bool {
 	case modeRedis:
 		return true
 	default:
-		c.Notes = append(c.Notes, fmt.Sprintf("PITCHER_MODE=%q is not file: git-pitcher uses redis", mode.Value))
+		c.Notes = append(c.Notes, fmt.Sprintf("PITCHER_MODE=%q is not file: %s uses redis", mode.Value, kind))
 		return true
 	}
 }

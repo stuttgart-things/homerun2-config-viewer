@@ -83,7 +83,14 @@ func TestStreamUses(t *testing.T) {
 		for _, c := range u.Catchers {
 			catchers = append(catchers, c.Name+"("+c.ConsumerGroup+")")
 		}
-		got = append(got, u.Stream+" pitchers="+strings.Join(u.Pitchers, ",")+" catchers="+strings.Join(catchers, ","))
+		var pitchers []string
+		for _, p := range u.Pitchers {
+			pitchers = append(pitchers, p.Name)
+			if len(p.When) > 0 {
+				t.Errorf("%s: a pitcher without routes publishes every message, got when %v", p.Name, p.When)
+			}
+		}
+		got = append(got, u.Stream+" pitchers="+strings.Join(pitchers, ",")+" catchers="+strings.Join(catchers, ","))
 	}
 	want := []string{
 		"alerts pitchers= catchers=core(homerun2-core-catcher),notify(n)",

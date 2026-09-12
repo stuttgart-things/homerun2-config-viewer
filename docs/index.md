@@ -38,7 +38,7 @@ homerun-library routing  DryRun · BuildMatrix · Check
 
 | `app.kubernetes.io/component` | Service | Role | Default stream | Profile |
 |---|---|---|---|---|
-| `api` | omni-pitcher | pitcher | `messages` | — |
+| `api` | omni-pitcher | pitcher | `messages`, or the streams its `ROUTES_CONFIG` routes to (nothing with `PITCHER_MODE=file`) | — |
 | `pitcher` | git-pitcher | pitcher | `messages` | — |
 | `pitcher` | demo-pitcher | pitcher | `homerun` (only for `PITCH_TARGET` `redis`/`both`) | — |
 | `watcher` | k8s-pitcher | pitcher | from its profile (not resolved yet) | — |

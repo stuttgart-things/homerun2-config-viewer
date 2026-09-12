@@ -118,7 +118,11 @@ func TestStreams(t *testing.T) {
 		for _, c := range s.Catchers {
 			catchers = append(catchers, c.Name)
 		}
-		got = append(got, s.Stream+":"+strings.Join(s.Pitchers, ",")+":"+strings.Join(catchers, ","))
+		var pitchers []string
+		for _, p := range s.Pitchers {
+			pitchers = append(pitchers, p.Name)
+		}
+		got = append(got, s.Stream+":"+strings.Join(pitchers, ",")+":"+strings.Join(catchers, ","))
 	}
 	if want := []string{"homerun:demo:", "messages:omni:core,light"}; !slices.Equal(got, want) {
 		t.Errorf("streams = %v, want %v", got, want)

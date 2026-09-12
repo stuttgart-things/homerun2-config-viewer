@@ -107,7 +107,9 @@ See [docs/cicd.md](docs/cicd.md) for the Dagger functions and workflows, and [CL
 
 These are stated plainly, because a viewer that is confidently wrong is worse than none:
 
-- **Pitchers that go through omni-pitcher are not resolved to streams yet.** This covers demo-pitcher with `PITCH_TARGET=omni-pitcher`, k8s-pitcher and omni-pitcher's `ROUTES_CONFIG` routes. They are listed with a note ([#10](https://github.com/stuttgart-things/homerun2-config-viewer/issues/10)).
+- **Pitchers that pitch over HTTP to omni-pitcher are not resolved to streams yet.** This covers demo-pitcher with `PITCH_TARGET=omni-pitcher` and k8s-pitcher. They are listed with a note ([#25](https://github.com/stuttgart-things/homerun2-config-viewer/issues/25)). omni-pitcher's own `ROUTES_CONFIG` routes are resolved.
+- **The dry run starts at a stream.** It does not yet apply what omni-pitcher does to a pitch first, such as setting an empty `system` to `homerun2-omni-pitcher` ([#26](https://github.com/stuttgart-things/homerun2-config-viewer/issues/26)).
+- **Runtime stream switches are invisible.** led-catcher's `/streams` endpoint changes the streams it reads inside the running pod; the viewer only sees the Deployment.
 - **Matrix cells** carry only a system and a severity, so rules that also require tags or message text do not match there. Use the dry run for a concrete message.
 - **led-catcher text templates** are rendered only for plain `{{ variable }}`. Anything with Jinja2 filters or statements is shown raw.
 - **Environment values** that come from a Secret, a `$(VAR)` expansion or a pod field are not evaluated; they are shown as unresolved.

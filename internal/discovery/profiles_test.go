@@ -186,9 +186,7 @@ func checkTest1Routing(t *testing.T, res *Result) {
 		t.Errorf("routed = %v, want %s (demo-pitcher over HTTP and k8s-pitcher unresolved are left out)", names, want)
 	}
 
-	if findings := routing.Check(comps, []string{"error", "critical"}); len(findings) != 0 {
-		t.Errorf("test1 as deployed has no findings, got %+v", findings)
-	}
+	checkTest1Findings(t, comps)
 
 	for _, d := range routing.DryRun(comps, "messages", homerun.Message{Title: "Build failed", Severity: "error", System: "github"}) {
 		if !d.Receives || len(d.Reactions) != 1 {
@@ -206,6 +204,17 @@ func checkTest1Routing(t *testing.T, res *Result) {
 				t.Errorf("led: %+v", r)
 			}
 		}
+	}
+}
+
+// checkTest1Findings: omni-pitcher routes tabletennis to its own stream,
+// which led-catcher reads only while zaehlwerk has switched it there at
+// runtime. Nothing else is wrong on test1.
+func checkTest1Findings(t *testing.T, comps []routing.Component) {
+	t.Helper()
+	findings := routing.Check(comps, []string{"error", "critical"})
+	if len(findings) != 1 || findings[0].Kind != routing.FindingUnreadStream || findings[0].Component != "homerun2-omni-pitcher" || findings[0].Stream != "tabletennis" {
+		t.Errorf("test1 as deployed has one finding, tabletennis unread, got %+v", findings)
 	}
 }
 

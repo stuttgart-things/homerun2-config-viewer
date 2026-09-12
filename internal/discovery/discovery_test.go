@@ -134,7 +134,9 @@ func test1() []runtime.Object {
 		deployment("homerun2-light-catcher", "light-catcher", "ghcr.io/stuttgart-things/homerun2-light-catcher:v1.0.0", configEnvFrom,
 			env("REDIS_STREAM", "messages"), env("CONSUMER_GROUP", "homerun2-light-catcher"), env("PROFILE_PATH", "/config/profile.yaml")),
 		deployment("homerun2-omni-pitcher", "api", "ghcr.io/stuttgart-things/homerun2-omni-pitcher:v2.1.2", configEnvFrom,
-			env("ROUTES_CONFIG", "/config/routing/routes.yaml"), env("REDIS_STREAM", "messages")),
+			env("ROUTES_CONFIG", "/config/routing/routes.yaml"), env("REDIS_STREAM", "messages"),
+			mount("routes", "/config/routing", ""), cmVolume("routes", "homerun2-omni-pitcher-routes")),
+		configMap("homerun2-omni-pitcher-routes", map[string]string{"routes.yaml": test1RoutesYAML}),
 		deployment("homerun2-scout", "analytics", "ghcr.io/stuttgart-things/homerun2-scout:v0.8.2", configEnvFrom),
 		deployment("homerun2-wled-mock", "wled-mock", "ghcr.io/stuttgart-things/homerun2-wled-mock:v1.0.0"),
 		// Not selected: no part-of label.
@@ -170,7 +172,7 @@ func TestDiscover_Test1(t *testing.T) {
 		{"homerun2-k8s-pitcher", KindK8sPitcher, routing.RolePitcher, nil, "", false},
 		{"homerun2-led-catcher", KindLEDCatcher, routing.RoleCatcher, []string{"messages"}, "homerun2-led-catcher", true},
 		{"homerun2-light-catcher", KindLightCatcher, routing.RoleCatcher, []string{"messages"}, "homerun2-light-catcher", true},
-		{"homerun2-omni-pitcher", KindOmniPitcher, routing.RolePitcher, []string{"messages"}, "", true},
+		{"homerun2-omni-pitcher", KindOmniPitcher, routing.RolePitcher, []string{"messages", "tabletennis"}, "", true},
 		{"homerun2-scout", KindScout, "", nil, "", false},
 		{"homerun2-wled-mock", KindWLEDMock, "", nil, "", false},
 	}
@@ -204,8 +206,9 @@ func checkTest1Notes(t *testing.T, res *Result) {
 	if demo.Mode == nil || demo.Mode.Value != "omni-pitcher" || !hasNote(demo, "over HTTP to omni-pitcher") {
 		t.Errorf("demo-pitcher on test1 pitches over HTTP, REDIS_STREAM=homerun does not apply: mode %+v, notes %v", demo.Mode, demo.Notes)
 	}
-	if omni := component(t, res, "homerun2-omni-pitcher"); !hasNote(omni, "ROUTES_CONFIG") {
-		t.Errorf("omni-pitcher must note its routes config: %v", omni.Notes)
+	omni := component(t, res, "homerun2-omni-pitcher")
+	if omni.Routes == nil || omni.Routes.Status != ProfileOK || omni.Routes.ConfigMap != "homerun2-omni-pitcher-routes" || len(omni.Notes) != 0 {
+		t.Errorf("omni-pitcher routes = %+v, notes %v", omni.Routes, omni.Notes)
 	}
 	if k8s := component(t, res, "homerun2-k8s-pitcher"); !hasNote(k8s, "profile") {
 		t.Errorf("k8s-pitcher must say its target is not resolved: %v", k8s.Notes)
@@ -215,7 +218,7 @@ func checkTest1Notes(t *testing.T, res *Result) {
 		t.Errorf("light-catcher profile path = %+v", light.ProfilePath)
 	}
 
-	if got := res.Streams(); !slices.Equal(got, []string{"messages"}) {
+	if got := res.Streams(); !slices.Equal(got, []string{"messages", "tabletennis"}) {
 		t.Errorf("Streams() = %v", got)
 	}
 }

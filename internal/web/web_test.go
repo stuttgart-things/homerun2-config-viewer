@@ -137,6 +137,28 @@ func TestOverview_NoFindings(t *testing.T) {
 	lacks(t, body, `class="unread"`)
 }
 
+func TestOverview_Routes(t *testing.T) {
+	res, err := fixture.Discover(
+		fixture.Deployment("omni", "api", "img/homerun2-omni-pitcher:1", 1,
+			map[string]string{"ROUTES_CONFIG": "/config/routes.yaml"}, fixture.ProfileVolume("omni-routes", false)),
+		fixture.ConfigMap("omni-routes", map[string]string{"routes.yaml": `streams: [messages, tabletennis]
+default_stream: messages
+routes:
+  - match: {system: tabletennis}
+    stream: tabletennis
+`}),
+		fixture.Deployment("core", "consumer", "img/homerun2-core-catcher:1", 1, nil),
+	)
+	body := htmlOf(t, get(t, newMux(t, of(t, res, err)), "/"), http.StatusOK)
+	contains(t, body,
+		// streams: which rule sends omni-pitcher where
+		"omni <small>(no rule matches)</small>", "omni <small>(rule 1: system contains &#34;tabletennis&#34;)</small>",
+		// components: the routing file and its rules
+		"routes ok", "omni-routes / routes.yaml",
+		"<code>tabletennis</code> <small>if system contains &#34;tabletennis&#34;</small>", "<code>messages</code> <small>otherwise</small>",
+	)
+}
+
 func TestOverview_SnapshotError(t *testing.T) {
 	mux := newMux(t, stubSnapshots{err: errors.New(`deployments.apps is forbidden: <b>User</b> "x"`)})
 	body := htmlOf(t, get(t, mux, "/"), http.StatusServiceUnavailable)

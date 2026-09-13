@@ -1,3 +1,10 @@
+## [0.2.2](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.1...v0.2.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/sync to v0.23.0 ([#18](https://github.com/stuttgart-things/homerun2-config-viewer/issues/18)) ([1354444](https://github.com/stuttgart-things/homerun2-config-viewer/commit/135444410b66417247ae80b084719d848e025091))
+
 ## [0.2.1](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.0...v0.2.1) (2026-09-12)
 
 

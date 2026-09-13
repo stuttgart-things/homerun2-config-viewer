@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.2...v0.2.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/stuttgart-things/homerun-library/v4 to v4.5.0 ([#28](https://github.com/stuttgart-things/homerun2-config-viewer/issues/28)) ([46eddce](https://github.com/stuttgart-things/homerun2-config-viewer/commit/46eddce4481d72095d93dc4ee898eee9c16de570))
+
 ## [0.2.2](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.1...v0.2.2) (2026-09-13)
 
 

@@ -45,6 +45,7 @@ var missingProfileEffect = map[Kind]string{
 	KindLightCatcher:        "light-catcher lights nothing: it reads the profile for every message and fails",
 	KindLEDCatcher:          "led-catcher runs with an empty profile and displays nothing",
 	KindNotificationCatcher: "notification-catcher does not start without its config",
+	KindSoundCatcher:        "sound-catcher runs without rules and plays nothing",
 }
 
 // profileError is why a profile file could not be read.
@@ -80,6 +81,17 @@ func (p unavailableProfile) Evaluate(homerun.Message) []routing.Reaction {
 }
 
 func (unavailableProfile) Systems() []string { return nil }
+
+// soundProfile stands for a sound-catcher profile that was found but is not
+// evaluated: homerun-library has no parser for its rules yet. It neither
+// claims every message nor none.
+type soundProfile struct{}
+
+func (soundProfile) Evaluate(homerun.Message) []routing.Reaction {
+	return []routing.Reaction{{Summary: "plays what its profile's rules say (sound-catcher profiles are not evaluated here)"}}
+}
+
+func (soundProfile) Systems() []string { return nil }
 
 // resolveProfiles loads the profile of every catcher that has one.
 func (r *Result) resolveProfiles() {
@@ -147,6 +159,8 @@ func parseProfile(k Kind, data []byte) (routing.Profile, error) {
 			return nil, err
 		}
 		return p, nil
+	case KindSoundCatcher:
+		return soundProfile{}, nil
 	default:
 		return nil, fmt.Errorf("no profile parser for %s", k)
 	}

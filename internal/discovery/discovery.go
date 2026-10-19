@@ -207,6 +207,14 @@ func pickContainer(dep *appsv1.Deployment) (container *corev1.Container, note st
 }
 
 func resolveCatcher(c *Component, env environment, info kindInfo) {
+	if c.Kind == KindSoundCatcher {
+		mode := env.lookup("SOUND_MODE", "full")
+		c.Mode = &mode
+		if strings.EqualFold(strings.TrimSpace(mode.Value), soundModeStandalone) {
+			c.Notes = append(c.Notes, "SOUND_MODE=standalone: no Redis, reads no stream; only POST /play makes a sound")
+			return
+		}
+	}
 	streamsEnv := env.lookup("REDIS_STREAMS", "")
 	streamEnv := env.lookup("REDIS_STREAM", "")
 	c.StreamValues = []Value{streamsEnv, streamEnv}
@@ -270,6 +278,9 @@ const (
 	modeBoth        = "both"
 	modeOmniPitcher = "omni-pitcher"
 )
+
+// soundModeStandalone is sound-catcher's SOUND_MODE without Redis.
+const soundModeStandalone = "standalone"
 
 // demoPitcherUsesRedis applies demo-pitcher's PITCH_TARGET switch: redis
 // (default) and both publish to REDIS_STREAM, omni-pitcher and both pitch

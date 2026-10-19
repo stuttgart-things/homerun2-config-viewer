@@ -21,6 +21,7 @@ const (
 	KindLightCatcher        Kind = "light-catcher"
 	KindLEDCatcher          Kind = "led-catcher"
 	KindNotificationCatcher Kind = "notification-catcher"
+	KindSoundCatcher        Kind = "sound-catcher"
 	KindScout               Kind = "scout"
 	KindWLEDMock            Kind = "wled-mock"
 	KindConfigViewer        Kind = "config-viewer"
@@ -95,6 +96,11 @@ var kinds = map[Kind]kindInfo{
 		defaultStream: "alerts", defaultGroup: defaultGroup(KindNotificationCatcher),
 		profileEnv: envConfigPath, profileDefault: defaultNotificationConfig,
 	},
+	KindSoundCatcher: {
+		role: routing.RoleCatcher, multiStream: true,
+		defaultStream: defaultStreamMessages, defaultGroup: defaultGroup(KindSoundCatcher),
+		profileEnv: envProfilePath, profileDefault: defaultProfileFile,
+	},
 	KindScout:        {},
 	KindWLEDMock:     {},
 	KindConfigViewer: {},
@@ -110,6 +116,7 @@ var componentKinds = map[string]Kind{
 	string(KindLightCatcher): KindLightCatcher,
 	string(KindLEDCatcher):   KindLEDCatcher,
 	componentLabelNotifier:   KindNotificationCatcher,
+	string(KindSoundCatcher): KindSoundCatcher,
 	"analytics":              KindScout,
 	"wled-mock":              KindWLEDMock,
 	// The viewer lists itself: it is part-of homerun2 like every component.

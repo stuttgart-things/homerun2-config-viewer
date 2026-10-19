@@ -41,7 +41,7 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 - **No silent defaults for what is shown**: a value the viewer cannot resolve (a Secret ref, an unknown component, a profile it cannot find) is shown as unresolved, never guessed
 - Rule evaluation belongs in homerun-library `routing`, not here — this service collects and presents
 - Service defaults (stream, consumer group, profile path, publishing modes) live in `internal/discovery/kinds.go` and `discovery.go`, each read from the service's code. When a service changes a default, change it there too
-- What a catcher does when its profile file is missing (`missingProfileEffect` in `internal/discovery/profiles.go`) is read from the catchers' code too: light-catcher lights nothing, led-catcher runs with an empty profile, notification-catcher does not start
+- What a catcher does when its profile file is missing (`missingProfileEffect` in `internal/discovery/profiles.go`) is read from the catchers' code too: light-catcher lights nothing, led-catcher runs with an empty profile, notification-catcher does not start, sound-catcher plays nothing
 - RBAC stays minimal: `get`/`list` on `deployments` and `configmaps` in the viewer's own namespace. No `secrets`, no `watch`, no ClusterRole. A feature that needs more is a design question, not a rule to add
 - A catcher with a profile path never gets a nil `routing.Profile` — nil means "reacts to every message". A profile that cannot be used gets a stand-in that says why
 - Tests: `go test ./...` — no cluster needed; Kubernetes access is tested with `client-go`'s fake clientset

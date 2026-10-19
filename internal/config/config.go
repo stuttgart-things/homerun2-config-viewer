@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ const (
 	EnvKubeconfig          = "KUBECONFIG"
 	EnvCacheTTL            = "CACHE_TTL"
 	EnvMustReactSeverities = "MUST_REACT_SEVERITIES"
+	EnvBasePath            = "BASE_PATH"
 )
 
 // DefaultLabelSelector selects every homerun2 component: all of their KCL
@@ -54,6 +56,9 @@ type Config struct {
 	// MustReactSeverities are the severities every catcher with rules is
 	// expected to react to. Empty disables that check.
 	MustReactSeverities []string
+	// BasePath is the URL prefix the UI and API are served under, e.g.
+	// "/config" behind homerun2-portal. Empty serves at the root.
+	BasePath string
 }
 
 // Load reads the configuration from the process environment.
@@ -107,6 +112,11 @@ func LoadFrom(
 	}
 	cfg.MustReactSeverities = severities
 
+	cfg.BasePath, err = ParseBasePath(get(EnvBasePath, ""))
+	if err != nil {
+		errs = append(errs, err)
+	}
+
 	cfg.Namespace, cfg.NamespaceSource, err = resolveNamespace(lookup, readFile)
 	if err != nil {
 		errs = append(errs, err)
@@ -132,6 +142,24 @@ func parseSeverities(v string) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+var basePathSegment = regexp.MustCompile(`^[A-Za-z0-9._~-]+$`)
+
+// ParseBasePath normalises a BASE_PATH to "/a/b" form ("" and "/" become "").
+// Only plain path segments are accepted: the value is written into the pages'
+// HTML, and "." or ".." would make the prefix ambiguous.
+func ParseBasePath(s string) (string, error) {
+	trimmed := strings.Trim(strings.TrimSpace(s), "/")
+	if trimmed == "" {
+		return "", nil
+	}
+	for _, seg := range strings.Split(trimmed, "/") {
+		if !basePathSegment.MatchString(seg) || seg == "." || seg == ".." {
+			return "", fmt.Errorf("%s %q: segment %q is not a plain path segment", EnvBasePath, s, seg)
+		}
+	}
+	return "/" + trimmed, nil
 }
 
 // resolveNamespace picks the namespace to read: NAMESPACE, then POD_NAMESPACE

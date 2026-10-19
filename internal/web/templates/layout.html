@@ -4,24 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} · HOMERUN² config viewer</title>
-    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="icon" type="image/png" href="{{url "/static/favicon.png"}}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/viewer.css">
-    <script src="/static/htmx.min.js"></script>
+    <link rel="stylesheet" href="{{url "/static/viewer.css"}}">
+    <script src="{{url "/static/htmx.min.js"}}"></script>
 </head>
 <body>
     <div class="header-bar">
         <div>
-            <a href="/" style="text-decoration:none;color:inherit">
+            <a href="{{url "/"}}" style="text-decoration:none;color:inherit">
                 <h1>HOMERUN²</h1>
                 <div class="subtitle">config viewer · {{.Namespace}}</div>
             </a>
         </div>
         <nav class="actions">
-            <a href="/"{{if eq .Page "overview"}} aria-current="page"{{end}}>Overview</a>
-            <a href="/matrix"{{if eq .Page "matrix"}} aria-current="page"{{end}}>Matrix</a>
-            <a href="/dryrun"{{if eq .Page "dryrun"}} aria-current="page"{{end}}>Dry run</a>
+            <a href="{{url "/"}}"{{if eq .Page "overview"}} aria-current="page"{{end}}>Overview</a>
+            <a href="{{url "/matrix"}}"{{if eq .Page "matrix"}} aria-current="page"{{end}}>Matrix</a>
+            <a href="{{url "/dryrun"}}"{{if eq .Page "dryrun"}} aria-current="page"{{end}}>Dry run</a>
         </nav>
     </div>
     <main class="container-fluid">

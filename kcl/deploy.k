@@ -80,6 +80,10 @@ deployment = {
                                 name: "MUST_REACT_SEVERITIES"
                                 value: config.mustReactSeverities
                             }
+                            {
+                                name: "BASE_PATH"
+                                value: config.basePath
+                            }
                         ]
                         envFrom: [
                             {

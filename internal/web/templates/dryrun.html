@@ -1,7 +1,7 @@
 {{define "dryrun.html"}}{{template "head" .}}
 {{if not .Err}}
         <p class="explain">Type a sample message and see what every catcher would do with it: published to a stream, or sent by a pitcher - through omni-pitcher, with what omni-pitcher does to it, when that is where the pitcher pitches. Nothing is published.</p>
-        <form method="post" action="/dryrun" hx-post="/dryrun" hx-target="#dryrun-result" hx-swap="innerHTML">
+        <form method="post" action="{{url "/dryrun"}}" hx-post="{{url "/dryrun"}}" hx-target="#dryrun-result" hx-swap="innerHTML">
             <fieldset class="grid">
                 <label><input type="radio" name="target" value="stream"{{if ne .Form.Target "pitcher"}} checked{{end}}> Published to stream
                     <input name="stream" list="streams" value="{{.Form.Stream}}"></label>

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -35,11 +36,19 @@ func of(t *testing.T, res *discovery.Result, err error) stubSnapshots {
 
 func newMux(t *testing.T, snaps Snapshotter) *http.ServeMux {
 	t.Helper()
+	return newMuxAt(t, snaps, "")
+}
+
+// newMuxAt serves the pages as under BASE_PATH basePath: the routes stay at
+// the root of the mux, the URLs on the pages carry the prefix.
+func newMuxAt(t *testing.T, snaps Snapshotter, basePath string) *http.ServeMux {
+	t.Helper()
 	s, err := New(snaps, Options{
 		Namespace:           fixture.Namespace,
 		LabelSelector:       fixture.LabelSelector,
 		MustReactSeverities: []string{"error", "critical"},
 		Build:               handlers.BuildInfo{Version: "1.2.3", Commit: "0123456789abcdef", Date: "2026-09-11"},
+		BasePath:            basePath,
 	})
 	if err != nil {
 		t.Fatalf("New: %v", err)
@@ -363,4 +372,41 @@ func TestHumanDuration(t *testing.T) {
 			t.Errorf("humanDuration(%v) = %q, want %q", d, got, want)
 		}
 	}
+}
+
+// localURL matches every URL a page hands to the browser that is not
+// absolute: links, assets, forms and htmx requests.
+var localURL = regexp.MustCompile(`(?:href|src|action|hx-get|hx-post)="(/[^"]*)"`)
+
+// Behind homerun2-portal the pages are served under BASE_PATH, and every URL
+// they hand out must carry it: the portal forwards only /config/... here.
+func TestPages_CarryBasePath(t *testing.T) {
+	res, err := fixture.Mixup()
+	mux := newMuxAt(t, of(t, res, err), "/config")
+
+	pages := map[string]string{
+		"overview":    htmlOf(t, get(t, mux, "/"), http.StatusOK),
+		"matrix":      htmlOf(t, get(t, mux, "/matrix"), http.StatusOK),
+		"dryrun":      htmlOf(t, get(t, mux, "/dryrun"), http.StatusOK),
+		"dryrun-post": htmlOf(t, postDryRun(t, mux, url.Values{"stream": {"messages"}, "severity": {"error"}}, false), http.StatusOK),
+		"dryrun-htmx": htmlOf(t, postDryRun(t, mux, url.Values{"stream": {"messages"}, "severity": {"error"}}, true), http.StatusOK),
+		"no-snapshot": htmlOf(t, get(t, newMuxAt(t, stubSnapshots{err: errors.New("boom")}, "/config"), "/"), http.StatusServiceUnavailable),
+	}
+	for name, body := range pages {
+		for _, m := range localURL.FindAllStringSubmatch(body, -1) {
+			if !strings.HasPrefix(m[1], "/config/") {
+				t.Errorf("%s: local URL without the base path: %s", name, m[0])
+			}
+		}
+	}
+	contains(t, pages["overview"],
+		`href="/config/static/viewer.css"`, `src="/config/static/htmx.min.js"`,
+		`href="/config/matrix"`, `href="/config/dryrun?stream=`, `href="/config/dryrun?pitcher=`)
+	contains(t, pages["dryrun"], `action="/config/dryrun"`, `hx-post="/config/dryrun"`)
+	contains(t, pages["matrix"], `action="/config/matrix"`)
+}
+
+func TestPages_RootWithoutBasePath(t *testing.T) {
+	body := htmlOf(t, get(t, mixupMux(t), "/"), http.StatusOK)
+	contains(t, body, `href="/static/viewer.css"`, `href="/matrix"`, `href="/dryrun"`)
 }

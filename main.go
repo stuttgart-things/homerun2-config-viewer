@@ -59,6 +59,7 @@ func main() {
 		"label_selector", cfg.LabelSelector,
 		"cache_ttl", cfg.CacheTTL.String(),
 		"must_react_severities", cfg.MustReactSeverities,
+		"base_path", cfg.BasePath,
 		"in_cluster", cfg.Kubeconfig == "",
 	)
 
@@ -83,7 +84,8 @@ func run(ctx context.Context, cfg config.Config, info handlers.BuildInfo) error 
 	if err != nil {
 		return fmt.Errorf("listen on :%s: %w", cfg.HTTPPort, err)
 	}
-	return serve(ctx, ln, newMux(info, apiServer, webServer))
+	app := newMux(info, apiServer, webServer)
+	return serve(ctx, ln, handlers.Mount(cfg.BasePath, app, handlers.NewHealthHandler(info)))
 }
 
 // newServers wires the Kubernetes client, discovery and one snapshot cache
@@ -107,6 +109,7 @@ func newServers(cfg config.Config, info handlers.BuildInfo) (apiServer *api.Serv
 		LabelSelector:       cfg.LabelSelector,
 		MustReactSeverities: cfg.MustReactSeverities,
 		Build:               info,
+		BasePath:            cfg.BasePath,
 	})
 	if err != nil {
 		return nil, nil, err

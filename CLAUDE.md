@@ -96,6 +96,7 @@ Every response carries `meta`: namespace, label selector, `takenAt`, and `refres
 | `KUBECONFIG` | *(empty)* | Kubeconfig for running outside a cluster; empty means in-cluster |
 | `CACHE_TTL` | `10s` | How long a namespace snapshot is reused (`0` rebuilds per request) |
 | `MUST_REACT_SEVERITIES` | `error,critical` | Severities every catcher with rules should react to; empty disables the check |
+| `BASE_PATH` | *(empty)* | URL prefix of the pages and API, e.g. `/config` behind homerun2-portal; `/` redirects there. `/healthz` and `/health` (polled by the portal) stay at the root. Invalid values fail startup |
 | `LOG_FORMAT` | `json` | `json` or `text` |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 

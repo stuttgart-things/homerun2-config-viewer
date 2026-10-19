@@ -1,6 +1,6 @@
 {{define "matrix.html"}}{{template "head" .}}
 {{if not .Err}}
-        <form method="get" action="/matrix" class="controls">
+        <form method="get" action="{{url "/matrix"}}" class="controls">
             <label for="stream">Stream</label>
             <select id="stream" name="stream">
                 {{range .Streams}}<option value="{{.}}"{{if eq . $.Stream}} selected{{end}}>{{.}}</option>{{end}}
@@ -14,7 +14,7 @@
         <p class="explain">
             What each catcher reading <code>{{.Stream}}</code> does with a message carrying only a system and a severity.
             Rows are the systems a rule names, then <code>(other)</code> for every other system.
-            Rules that also require tags or message text do not match here - use the <a href="/dryrun?stream={{.Stream}}">dry run</a> for a concrete message.
+            Rules that also require tags or message text do not match here - use the <a href="{{url "/dryrun"}}?stream={{.Stream}}">dry run</a> for a concrete message.
             A highlighted entry is a catcher that does not react to a severity it should ({{join .MustReact ", "}}).
         </p>
         {{if not .Catchers}}

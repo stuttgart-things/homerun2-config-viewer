@@ -42,7 +42,7 @@ httproute = {
                     {
                         path: {
                             type: "PathPrefix"
-                            value: "/"
+                            value: config.basePath if config.basePath else "/"
                         }
                     }
                 ]

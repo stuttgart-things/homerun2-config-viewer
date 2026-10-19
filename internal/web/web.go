@@ -66,6 +66,10 @@ type Options struct {
 	LabelSelector       string
 	MustReactSeverities []string
 	Build               handlers.BuildInfo
+	// BasePath prefixes every URL the pages hand out (BASE_PATH, e.g.
+	// "/config" behind homerun2-portal). Empty serves at the root. The
+	// routes stay at the root of the mux; handlers.Mount strips the prefix.
+	BasePath string
 }
 
 // Server serves the pages.
@@ -110,6 +114,8 @@ func (s *Server) funcs() template.FuncMap {
 		"add":           func(a, b int) int { return a + b },
 		"since":         func(t time.Time) string { return humanDuration(s.now().Sub(t)) },
 		"severityClass": severityClass,
+		// url prefixes a local path with BasePath: {{url "/matrix"}}.
+		"url": func(path string) string { return s.opts.BasePath + path },
 		"shortCommit": func(c string) string {
 			if len(c) > shortCommitLen {
 				return c[:shortCommitLen]

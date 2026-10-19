@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.3.1...v0.4.0) (2026-10-19)
+
+
+### Features
+
+* know sound-catcher ([#40](https://github.com/stuttgart-things/homerun2-config-viewer/issues/40)) ([ed4aedd](https://github.com/stuttgart-things/homerun2-config-viewer/commit/ed4aeddf763ae06ebbd4a662e144a6ea777c0077)), closes [#38](https://github.com/stuttgart-things/homerun2-config-viewer/issues/38)
+
 ## [0.3.1](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.3.0...v0.3.1) (2026-10-19)
 
 

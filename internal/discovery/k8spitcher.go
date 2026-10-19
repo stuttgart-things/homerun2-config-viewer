@@ -29,6 +29,9 @@ type k8sPitcherProfile struct {
 		Pitcher struct {
 			Addr string `yaml:"addr"`
 		} `yaml:"pitcher"`
+		Webhook struct {
+			Enabled bool `yaml:"enabled"`
+		} `yaml:"webhook"`
 		Collectors []struct {
 			Kind     string        `yaml:"kind"`
 			Interval time.Duration `yaml:"interval"`
@@ -50,8 +53,10 @@ func (p *k8sPitcherProfile) validate() error {
 		return errors.New("spec.redis and spec.pitcher are mutually exclusive")
 	case hasRedis && p.Spec.Redis.Stream == "":
 		return errors.New("spec.redis.stream is required")
-	case len(p.Spec.Collectors) == 0 && len(p.Spec.Informers) == 0:
-		return errors.New("at least one collector or informer must be defined")
+	case len(p.Spec.Collectors) == 0 && len(p.Spec.Informers) == 0 && !p.Spec.Webhook.Enabled:
+		// The webhook server runs on its own (k8s-pitcher v1.2.0+), so a
+		// profile that only receives flux events is valid.
+		return errors.New("at least one collector, informer or an enabled webhook must be defined")
 	}
 	return p.validateWatches()
 }

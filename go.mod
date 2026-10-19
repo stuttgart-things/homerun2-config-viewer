@@ -1,11 +1,11 @@
 module github.com/stuttgart-things/homerun2-config-viewer
 
-go 1.26.6
+go 1.26.9
 
 require (
 	charm.land/bubbletea/v2 v2.1.0
 	charm.land/lipgloss/v2 v2.0.6
-	github.com/stuttgart-things/homerun-library/v4 v4.5.0
+	github.com/stuttgart-things/homerun-library/v4 v4.5.2
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sync v0.24.0
 	k8s.io/api v0.37.1
@@ -54,12 +54,12 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nitishm/go-rejson/v4 v4.2.0 // indirect
-	github.com/redis/go-redis/v9 v9.22.0 // indirect
+	github.com/redis/go-redis/v9 v9.23.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xo/terminfo v1.0.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/atomic v1.12.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect

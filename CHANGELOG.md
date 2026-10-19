@@ -1,3 +1,11 @@
+## [0.3.1](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.3.0...v0.3.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* a webhook-only k8s-pitcher profile is valid ([#39](https://github.com/stuttgart-things/homerun2-config-viewer/issues/39)) ([209f9d2](https://github.com/stuttgart-things/homerun2-config-viewer/commit/209f9d2926ce4d6a9ed0ab8cfd0da1f353a94c79)), closes [#37](https://github.com/stuttgart-things/homerun2-config-viewer/issues/37)
+* **deps:** update module golang.org/x/sync to v0.24.0 ([#34](https://github.com/stuttgart-things/homerun2-config-viewer/issues/34)) ([089815f](https://github.com/stuttgart-things/homerun2-config-viewer/commit/089815f5c9c913eee7a8e21ffe1a7a8bfac4141c))
+
 # [0.3.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.3...v0.3.0) (2026-10-19)
 
 

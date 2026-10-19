@@ -34,7 +34,7 @@ func (m *Dagger) Govulncheck(
 	ctx context.Context,
 	src *dagger.Directory,
 	// +optional
-	// +default="1.26.6"
+	// +default="1.26.9"
 	goVersion string,
 	// +optional
 	// +default="latest"
@@ -77,7 +77,7 @@ func (m *Dagger) Test(
 	ctx context.Context,
 	src *dagger.Directory,
 	// +optional
-	// +default="1.26.6"
+	// +default="1.26.9"
 	goVersion string,
 	// +optional
 	// +default="./..."
@@ -99,7 +99,7 @@ func (m *Dagger) Build(
 	// +default=""
 	ldflags string,
 	// +optional
-	// +default="1.26.6"
+	// +default="1.26.9"
 	goVersion string,
 	// +optional
 	// +default="linux"
@@ -127,7 +127,7 @@ func (m *Dagger) SmokeTest(
 	ctx context.Context,
 	src *dagger.Directory,
 	// +optional
-	// +default="1.26.6"
+	// +default="1.26.9"
 	goVersion string,
 ) (string, error) {
 	bin := m.Build(ctx, src, "homerun2-config-viewer", "", goVersion, "linux", "amd64").

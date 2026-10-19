@@ -1,3 +1,16 @@
+# [0.3.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.3...v0.3.0) (2026-10-19)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes monorepo to v0.37.1 ([#32](https://github.com/stuttgart-things/homerun2-config-viewer/issues/32)) ([2de94cb](https://github.com/stuttgart-things/homerun2-config-viewer/commit/2de94cb7fe638271d7c677e5472de76c5e62a8b8))
+* **deps:** update module charm.land/bubbletea/v2 to v2.1.0 ([#33](https://github.com/stuttgart-things/homerun2-config-viewer/issues/33)) ([1f57cdc](https://github.com/stuttgart-things/homerun2-config-viewer/commit/1f57cdce1fa9c651fb43099496dd7262efe2bbf5))
+
+
+### Features
+
+* serve the UI under BASE_PATH ([#36](https://github.com/stuttgart-things/homerun2-config-viewer/issues/36)) ([a7bd3ea](https://github.com/stuttgart-things/homerun2-config-viewer/commit/a7bd3ea06fa3fe5a0a4ad12776dd0e65be421f44)), closes [#35](https://github.com/stuttgart-things/homerun2-config-viewer/issues/35)
+
 ## [0.2.3](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.2.2...v0.2.3) (2026-09-13)
 
 

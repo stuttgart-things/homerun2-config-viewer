@@ -46,6 +46,7 @@ homerun-library routing  DryRun · BuildMatrix · Check
 | `light-catcher` | light-catcher | catcher | `messages` | `PROFILE_PATH` |
 | `led-catcher` | led-catcher | catcher | `messages` | `PROFILE_PATH` |
 | `notifier` | notification-catcher | catcher | **`alerts`** | `CONFIG_PATH` |
+| `sound-catcher` | sound-catcher | catcher | `messages` (none with `SOUND_MODE=standalone`) | `PROFILE_PATH`, found but its rules not evaluated yet |
 | `analytics` | scout | — | — | — |
 | `wled-mock`, `config-viewer` | wled-mock, this viewer | — | — | — |
 

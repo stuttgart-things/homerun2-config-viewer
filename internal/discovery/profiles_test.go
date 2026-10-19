@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -443,6 +444,7 @@ func TestProfiles_MissingPerCatcher(t *testing.T) {
 		{"light-catcher", "light-catcher", "img/homerun2-light-catcher:1", "PROFILE_PATH", "light-catcher lights nothing", false},
 		{"led-catcher", "led-catcher", "img/homerun2-led-catcher:1", "PROFILE_PATH", "led-catcher runs with an empty profile", true},
 		{"notification-catcher", "notifier", "img/homerun2-notification-catcher:1", "CONFIG_PATH", "notification-catcher does not start", false},
+		{"sound-catcher", "sound-catcher", "img/homerun2-sound-catcher:1", "PROFILE_PATH", "sound-catcher runs without rules and plays nothing", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -497,5 +499,43 @@ func TestRoutingComponents(t *testing.T) {
 		if g := byName[name].ConsumerGroup; g != "" {
 			t.Errorf("%s: an unresolved consumer group must be passed as unknown, got %q", name, g)
 		}
+	}
+}
+
+func TestSoundCatcher(t *testing.T) {
+	res := discover(t,
+		configMap("sound-profile", map[string]string{"profile.yaml": "rules:\n  alarm:\n    severity: [error]\n    say: \"{{ title }}\"\n"}),
+		deployment("sound", "sound-catcher", "img/homerun2-sound-catcher:1",
+			env("REDIS_STREAMS", "messages,alerts"), env("PROFILE_PATH", "/config/profile.yaml"),
+			mount("p", "/config", ""), cmVolume("p", "sound-profile")),
+		deployment("standalone", "sound-catcher", "img/homerun2-sound-catcher:1", env("SOUND_MODE", " Standalone ")),
+	)
+
+	sound := component(t, res, "sound")
+	if sound.Kind != KindSoundCatcher || sound.Role != routing.RoleCatcher || !slices.Equal(sound.Streams, []string{"messages", "alerts"}) {
+		t.Errorf("sound = kind %s role %s streams %v", sound.Kind, sound.Role, sound.Streams)
+	}
+	if sound.Profile == nil || sound.Profile.Status != ProfileOK {
+		t.Fatalf("profile = %+v", sound.Profile)
+	}
+	// Found but not evaluated: neither "receives every message" nor nothing.
+	r := sound.rules.Evaluate(homerun.Message{Severity: "info", System: "x"})
+	if len(r) != 1 || !strings.Contains(r[0].Summary, "not evaluated") || r[0].Problem != "" {
+		t.Errorf("reactions = %+v", r)
+	}
+
+	standalone := component(t, res, "standalone")
+	if len(standalone.Streams) != 0 || standalone.ConsumerGroup != nil || len(standalone.Notes) != 1 || !strings.Contains(standalone.Notes[0], "standalone") {
+		t.Errorf("standalone = streams %v group %+v notes %v", standalone.Streams, standalone.ConsumerGroup, standalone.Notes)
+	}
+
+	var readers []string
+	for _, c := range res.RoutingComponents() {
+		if slices.Contains(c.Streams, "alerts") {
+			readers = append(readers, c.Name+"/"+c.ConsumerGroup)
+		}
+	}
+	if !slices.Equal(readers, []string{"sound/homerun2-sound-catcher"}) {
+		t.Errorf("alerts readers = %v", readers)
 	}
 }

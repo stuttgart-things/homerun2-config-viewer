@@ -244,6 +244,7 @@ func TestDiscover_Defaults(t *testing.T) {
 		deployment("omni", "api", "img/homerun2-omni-pitcher:1"),
 		deployment("git", "pitcher", "img/homerun2-git-pitcher:1"),
 		deployment("demo", "pitcher", "img/homerun2-demo-pitcher:1"),
+		deployment("sound", "sound-catcher", "img/homerun2-sound-catcher:1"),
 	)
 
 	cases := []struct {
@@ -256,6 +257,7 @@ func TestDiscover_Defaults(t *testing.T) {
 		{"omni", "messages", "", ""},
 		{"git", "messages", "", ""},
 		{"demo", "homerun", "", ""},
+		{"sound", "messages", "homerun2-sound-catcher", "profile.yaml"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

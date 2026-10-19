@@ -18,7 +18,7 @@ Both are published by the Release workflow. The kustomize base pins the released
 | ServiceAccount | `homerun2-config-viewer` |
 | Role + RoleBinding | `get`/`list` on `deployments` (apps) and `configmaps` in the release namespace — nothing else |
 | ConfigMap `<name>-config` | `LOG_LEVEL` + `extraEnvVars`, loaded via `envFrom` |
-| Deployment | env `POD_NAMESPACE` (downward API), `HTTP_PORT`, `LABEL_SELECTOR`, `CACHE_TTL`, `MUST_REACT_SEVERITIES`; probes on `/healthz`; non-root, read-only root filesystem, all capabilities dropped |
+| Deployment | env `POD_NAMESPACE` (downward API), `HTTP_PORT`, `LABEL_SELECTOR`, `CACHE_TTL`, `MUST_REACT_SEVERITIES`, `BASE_PATH` (`config.basePath`, also the HTTPRoute path prefix); probes on `/healthz`; non-root, read-only root filesystem, all capabilities dropped |
 | Service | port 80 → `http` |
 | HTTPRoute | only with `config.httpRouteEnabled`; requires `config.httpRouteParentRefName` |
 

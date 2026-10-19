@@ -143,3 +143,47 @@ func TestLoadFrom_ReportsEveryError(t *testing.T) {
 		t.Errorf("want three joined errors, got %v", err)
 	}
 }
+
+func TestParseBasePath(t *testing.T) {
+	cases := []struct {
+		in      string
+		want    string
+		wantErr bool
+	}{
+		{"", "", false},
+		{"/", "", false},
+		{"/config", "/config", false},
+		{"config", "/config", false},
+		{"/config/", "/config", false},
+		{" /homerun/config ", "/homerun/config", false},
+		{"/a//b", "", true},
+		{"/../config", "", true},
+		{`/config"><script>`, "", true},
+		{"/config?x=1", "", true},
+	}
+	for _, tc := range cases {
+		got, err := ParseBasePath(tc.in)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("ParseBasePath(%q) error = %v, wantErr %v", tc.in, err, tc.wantErr)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseBasePath(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestLoadFrom_BasePath(t *testing.T) {
+	cfg, err := LoadFrom(env(map[string]string{"NAMESPACE": "homerun2", "BASE_PATH": "/config/"}), noFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.BasePath != "/config" {
+		t.Errorf("BasePath = %q, want /config", cfg.BasePath)
+	}
+
+	_, err = LoadFrom(env(map[string]string{"NAMESPACE": "homerun2", "BASE_PATH": "/../x", "HTTP_PORT": "x"}), noFile)
+	if err == nil || !strings.Contains(err.Error(), "BASE_PATH") || !strings.Contains(err.Error(), "HTTP_PORT") {
+		t.Errorf("want BASE_PATH reported next to the other invalid values, got %v", err)
+	}
+}

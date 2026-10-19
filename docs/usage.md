@@ -69,7 +69,7 @@ All endpoints return JSON with a `meta` object:
 | `GET /api/matrix?stream=<s>[&severities=a,b]` | `matrix`: `catchers`, `systems`, `severities`, `cells` with `deliveries` per catcher |
 | `POST /api/dryrun` | body `{"stream": "...", "message": {...}}` → `pitchers`, `reachesNobody`, `deliveries` (`component`, `receives`, `sharedWith`, `reactions`) |
 | `POST /api/dryrun` | body `{"pitcher": "...", "message": {...}}` → `pitcher`, `paths` (`via`, `endpoint`, `problem`, `rejected`, `defaulted` (`field`, `value`), `rule`, `result` as above, with the message as published), `notes` |
-| `GET /healthz` | `{"status":"healthy", "version", "commit", "date", "time"}`; does not call the Kubernetes API |
+| `GET /healthz` | `{"status":"healthy", "version", "commit", "date", "time"}`; does not call the Kubernetes API. Also at `/health`, the path homerun2-portal polls; both stay at the root under a `BASE_PATH` |
 
 ### Examples for the integration stage
 

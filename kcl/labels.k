@@ -12,6 +12,7 @@ _labelSelector = option("config.labelSelector")
 _cacheTtl = option("config.cacheTtl")
 _mustReactSeverities = option("config.mustReactSeverities")
 _logLevel = option("config.logLevel")
+_basePath = option("config.basePath")
 _httpRouteEnabled = option("config.httpRouteEnabled")
 _httpRouteParentRefName = option("config.httpRouteParentRefName")
 _httpRouteParentRefNamespace = option("config.httpRouteParentRefNamespace")
@@ -36,6 +37,8 @@ config: schema.ConfigViewer = schema.ConfigViewer {
         mustReactSeverities = _mustReactSeverities
     if _logLevel:
         logLevel = _logLevel
+    if _basePath:
+        basePath = _basePath
     if _httpRouteEnabled:
         httpRouteEnabled = _httpRouteEnabled in [True, "True", "true"]
     if _httpRouteParentRefName:

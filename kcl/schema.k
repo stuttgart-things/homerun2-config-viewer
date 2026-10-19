@@ -30,6 +30,9 @@ schema ConfigViewer:
     # check.
     mustReactSeverities: str = "error,critical"
     logLevel: str = "info"
+    # URL prefix of the UI and API (BASE_PATH), e.g. "/config" behind
+    # homerun2-portal. Also the HTTPRoute's path prefix. Empty serves at "/".
+    basePath: str = ""
 
     # Service
     serviceType: str = "ClusterIP"

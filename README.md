@@ -50,6 +50,7 @@ The pages are server-rendered and work without JavaScript. The same data is avai
 | `KUBECONFIG` | *(empty)* | Kubeconfig for running outside a cluster; empty means in-cluster |
 | `CACHE_TTL` | `10s` | How long a snapshot of the namespace is reused; `0` rebuilds on every request |
 | `MUST_REACT_SEVERITIES` | `error,critical` | Severities every catcher with rules should react to; empty disables that check |
+| `BASE_PATH` | *(empty)* | URL prefix of the pages, the API and `/static/`, e.g. `/config` behind homerun2-portal. Every link the pages hand out carries it, `/` redirects there, and `/healthz` and `/health` stay at the root. Plain path segments only; an invalid value fails startup |
 | `LOG_FORMAT` | `json` | `json` or `text` |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 

@@ -508,7 +508,6 @@ func TestSoundCatcher(t *testing.T) {
 		deployment("sound", "sound-catcher", "img/homerun2-sound-catcher:1",
 			env("REDIS_STREAMS", "messages,alerts"), env("PROFILE_PATH", "/config/profile.yaml"),
 			mount("p", "/config", ""), cmVolume("p", "sound-profile")),
-		deployment("standalone", "sound-catcher", "img/homerun2-sound-catcher:1", env("SOUND_MODE", " Standalone ")),
 	)
 
 	sound := component(t, res, "sound")
@@ -524,11 +523,6 @@ func TestSoundCatcher(t *testing.T) {
 		t.Errorf("reactions = %+v", r)
 	}
 
-	standalone := component(t, res, "standalone")
-	if len(standalone.Streams) != 0 || standalone.ConsumerGroup != nil || len(standalone.Notes) != 1 || !strings.Contains(standalone.Notes[0], "standalone") {
-		t.Errorf("standalone = streams %v group %+v notes %v", standalone.Streams, standalone.ConsumerGroup, standalone.Notes)
-	}
-
 	var readers []string
 	for _, c := range res.RoutingComponents() {
 		if slices.Contains(c.Streams, "alerts") {
@@ -537,5 +531,18 @@ func TestSoundCatcher(t *testing.T) {
 	}
 	if !slices.Equal(readers, []string{"sound/homerun2-sound-catcher"}) {
 		t.Errorf("alerts readers = %v", readers)
+	}
+}
+
+func TestSoundCatcher_Standalone(t *testing.T) {
+	res := discover(t, deployment("standalone", "sound-catcher", "img/homerun2-sound-catcher:1", env("SOUND_MODE", " Standalone ")))
+
+	c := component(t, res, "standalone")
+	if len(c.Streams) != 0 || c.ConsumerGroup != nil || len(c.Notes) != 1 || !strings.Contains(c.Notes[0], "standalone") {
+		t.Errorf("standalone = streams %v group %+v notes %v", c.Streams, c.ConsumerGroup, c.Notes)
+	}
+	// Reading no stream, it takes no part in routing.
+	if routed := res.RoutingComponents(); len(routed) != 0 {
+		t.Errorf("routed = %+v, want none", routed)
 	}
 }

@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.4.0...v0.4.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* homerun-library v4.5.2, light check knows orange and device palettes ([#41](https://github.com/stuttgart-things/homerun2-config-viewer/issues/41)) ([ec89705](https://github.com/stuttgart-things/homerun2-config-viewer/commit/ec8970585136be29403374cb53cb11fc7d818dad)), closes [stuttgart-things/homerun-library#137](https://github.com/stuttgart-things/homerun-library/issues/137) [stuttgart-things/homerun-library#136](https://github.com/stuttgart-things/homerun-library/issues/136)
+
 # [0.4.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.3.1...v0.4.0) (2026-10-19)
 
 

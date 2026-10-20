@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.5.0...v0.6.0) (2026-10-20)
+
+
+### Features
+
+* homerun2 design tokens and a compact header inside the portal ([348a4e8](https://github.com/stuttgart-things/homerun2-config-viewer/commit/348a4e819bc946027a2ae997d4031ee6015e3810)), closes [#44](https://github.com/stuttgart-things/homerun2-config-viewer/issues/44)
+
 # [0.5.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.4.1...v0.5.0) (2026-10-20)
 
 

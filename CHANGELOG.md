@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.4.1...v0.5.0) (2026-10-20)
+
+
+### Features
+
+* led-catcher streams from UI_STREAM_PRESETS count as read on demand ([#43](https://github.com/stuttgart-things/homerun2-config-viewer/issues/43)) ([52fb132](https://github.com/stuttgart-things/homerun2-config-viewer/commit/52fb1328cc1cabb3903009d47d9bbef63224d8b7)), closes [#42](https://github.com/stuttgart-things/homerun2-config-viewer/issues/42)
+
 ## [0.4.1](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.4.0...v0.4.1) (2026-10-20)
 
 

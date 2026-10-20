@@ -29,9 +29,12 @@ const (
 )
 
 // Findings returns routing.Check over the routed components, followed by the
-// viewer's findings about each component in name order.
+// viewer's findings about each component in name order. A stream a routed
+// led-catcher reads on demand is not reported as unread.
 func (r *Result) Findings(mustReact []string) []routing.Finding {
-	findings := routing.Check(r.RoutingComponents(), mustReact)
+	findings := slices.DeleteFunc(routing.Check(r.RoutingComponents(), mustReact), func(f routing.Finding) bool {
+		return f.Kind == routing.FindingUnreadStream && len(r.onDemandReaders(f.Stream)) > 0
+	})
 	for i := range r.Components {
 		findings = append(findings, r.Components[i].findings()...)
 	}
@@ -111,10 +114,14 @@ type StreamReader struct {
 	Name string `json:"name"`
 	// ConsumerGroup is empty when it could not be resolved.
 	ConsumerGroup string `json:"consumerGroup,omitempty"`
+	// OnDemand: the catcher reads the stream only once it is switched to it
+	// at runtime (led-catcher UI_STREAM_PRESETS).
+	OnDemand bool `json:"onDemand,omitempty"`
 }
 
 // StreamUses returns, for every stream a routed component uses, the routed
-// pitchers publishing to it and the routed catchers reading it.
+// pitchers publishing to it and the routed catchers reading it, followed by
+// those reading it on demand.
 func (r *Result) StreamUses() []StreamUse {
 	comps := r.RoutingComponents()
 	out := []StreamUse{}
@@ -132,7 +139,21 @@ func (r *Result) StreamUses() []StreamUse {
 			}
 		}
 		use.Pitchers = append(use.Pitchers, r.viaWriters(stream)...)
+		for _, c := range r.onDemandReaders(stream) {
+			use.Catchers = append(use.Catchers, StreamReader{Name: c.Name, ConsumerGroup: c.routingGroup(), OnDemand: true})
+		}
 		out = append(out, use)
+	}
+	return out
+}
+
+// onDemandReaders returns the routed catchers that read stream on demand.
+func (r *Result) onDemandReaders(stream string) []*Component {
+	var out []*Component
+	for i := range r.Components {
+		if c := &r.Components[i]; c.Routed() && slices.Contains(c.OnDemandStreams, stream) {
+			out = append(out, c)
+		}
 	}
 	return out
 }

@@ -326,11 +326,12 @@ func matrixRows(m *routing.Matrix, mustReact []string) []matrixRow {
 	return rows
 }
 
-// defaultStream is the first stream a catcher reads, or the first stream.
+// defaultStream is the first stream a catcher reads from the start, or the
+// first stream.
 func defaultStream(res *discovery.Result) string {
 	uses := res.StreamUses()
 	for _, u := range uses {
-		if len(u.Catchers) > 0 {
+		if slices.ContainsFunc(u.Catchers, func(c discovery.StreamReader) bool { return !c.OnDemand }) {
 			return u.Stream
 		}
 	}

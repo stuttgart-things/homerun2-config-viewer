@@ -31,7 +31,7 @@ The pages are server-rendered and work without JavaScript. The same data is avai
 | Kind | Means |
 |---|---|
 | `pod-cannot-start` | a ConfigMap the pod requires (envFrom, keyRef, profile volume) does not exist |
-| `unread-stream` | a pitcher publishes to a stream no catcher reads |
+| `unread-stream` | a pitcher publishes to a stream no catcher reads, not even on demand (led-catcher `UI_STREAM_PRESETS`) |
 | `shared-consumer-group` | different catchers read a stream in the same consumer group, so each message reaches only one of them |
 | `uncovered-severity` | a catcher with rules does not react to a must-react severity (`MUST_REACT_SEVERITIES`) |
 | `broken-rule` | a rule matches but cannot act, e.g. an unknown WLED effect, or a severity rendered white |
@@ -111,7 +111,7 @@ These are stated plainly, because a viewer that is confidently wrong is worse th
 - **HTTP targets are matched to omni-pitcher by name.** A pitcher's URL has to name omni-pitcher's Service as `<name>`, `<name>.<namespace>` or `<name>.<namespace>.svc…`. Every homerun2 KCL base names the Service like its Deployment, and the viewer's Role cannot list Services, so a Service with another name, or a port other than the Service's, is not detected.
 - **k8s-pitcher's profile is checked the way k8s-pitcher checks it.** When k8s-pitcher changes that validation, the viewer has to follow.
 - **A dry run from a pitcher that writes to a stream itself publishes the message as typed.** git- and k8s-pitcher normally build their messages from GitHub and Kubernetes events; the dry run answers "what if they sent this one". Through omni-pitcher, the message is validated, defaulted and routed the way omni-pitcher's `/pitch` does it.
-- **Runtime stream switches are invisible.** led-catcher's `/streams` endpoint changes the streams it reads inside the running pod; the viewer only sees the Deployment.
+- **Runtime stream switches are invisible.** led-catcher's `/streams` endpoint changes the streams it reads inside the running pod; the viewer only sees the Deployment. The streams its web simulator offers as presets (`UI_STREAM_PRESETS`) are shown as read *on demand*: a stream only they read is not reported as unread, but the matrix and the dry run use the streams it reads from the start.
 - **Matrix cells** carry only a system and a severity, so rules that also require tags or message text do not match there. Use the dry run for a concrete message.
 - **led-catcher text templates** are rendered only for plain `{{ variable }}`. Anything with Jinja2 filters or statements is shown raw.
 - **Environment values** that come from a Secret, a `$(VAR)` expansion or a pod field are not evaluated; they are shown as unresolved.

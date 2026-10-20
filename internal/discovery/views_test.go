@@ -106,3 +106,57 @@ func TestStreamUses(t *testing.T) {
 		}
 	}
 }
+
+func TestOnDemandStreams(t *testing.T) {
+	res := discover(t,
+		deployment("score", "pitcher", "img/homerun2-demo-pitcher:1", env("PITCH_TARGET", "redis"), env("REDIS_STREAM", "tabletennis")),
+		deployment("demo", "pitcher", "img/homerun2-demo-pitcher:1", env("PITCH_TARGET", "redis"), env("REDIS_STREAM", "homerun")),
+		deployment("led", "led-catcher", "img/homerun2-led-catcher:1",
+			env("REDIS_STREAMS", "messages,alerts"), env("UI_STREAM_PRESETS", "messages|alerts, tabletennis | scale,,messages")),
+		// Scaled to zero, its presets read nothing.
+		deployment("stopped", "led-catcher", "img/homerun2-led-catcher:1", scaledToZero,
+			env("CONSUMER_GROUP", "stopped"), env("UI_STREAM_PRESETS", "homerun")),
+	)
+
+	led := component(t, res, "led")
+	if !slices.Equal(led.OnDemandStreams, []string{"tabletennis", "scale"}) {
+		t.Errorf("on-demand streams = %v", led.OnDemandStreams)
+	}
+	if !slices.ContainsFunc(led.Notes, func(n string) bool { return strings.Contains(n, `"tabletennis", "scale" only on demand`) }) {
+		t.Errorf("notes = %v", led.Notes)
+	}
+	// Read on demand, not from the start: the matrix does not list it.
+	for _, c := range res.RoutingComponents() {
+		if c.Role == routing.RoleCatcher && slices.Contains(c.Streams, "tabletennis") {
+			t.Errorf("%s reads tabletennis from the start", c.Name)
+		}
+	}
+
+	var unread []string
+	for _, f := range res.Findings(nil) {
+		if f.Kind == routing.FindingUnreadStream {
+			unread = append(unread, f.Stream)
+		}
+	}
+	if !slices.Equal(unread, []string{"homerun"}) {
+		t.Errorf("unread streams = %v, want only homerun", unread)
+	}
+
+	for _, u := range res.StreamUses() {
+		if u.Stream != "tabletennis" {
+			continue
+		}
+		if want := []StreamReader{{Name: "led", ConsumerGroup: "homerun2-led-catcher", OnDemand: true}}; !slices.Equal(u.Catchers, want) {
+			t.Errorf("tabletennis catchers = %+v, want %+v", u.Catchers, want)
+		}
+	}
+}
+
+func TestOnDemandStreams_NoPresets(t *testing.T) {
+	res := discover(t, deployment("led", "led-catcher", "img/homerun2-led-catcher:1", env("REDIS_STREAMS", "messages,alerts")))
+
+	// Without presets, the simulator offers the configured streams only.
+	if led := component(t, res, "led"); led.OnDemandStreams != nil || len(led.Notes) != 0 {
+		t.Errorf("led = on demand %v notes %v", led.OnDemandStreams, led.Notes)
+	}
+}

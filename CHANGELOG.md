@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.6.0...v0.7.0) (2026-10-20)
+
+
+### Features
+
+* offer the findings as a homerun2-portal fragment ([fb13024](https://github.com/stuttgart-things/homerun2-config-viewer/commit/fb13024986220bb3698fcddd7ee6cd64f1a18650)), closes [#46](https://github.com/stuttgart-things/homerun2-config-viewer/issues/46)
+
 # [0.6.0](https://github.com/stuttgart-things/homerun2-config-viewer/compare/v0.5.0...v0.6.0) (2026-10-20)
 
 

@@ -305,11 +305,16 @@ func (r *Result) RoutingComponents() []routing.Component {
 		if !c.Routed() {
 			continue
 		}
-		rc := routing.Component{Name: c.Name, Role: c.Role, Streams: c.Streams, Profile: c.rules}
-		if g := c.ConsumerGroup; g != nil && (g.Unresolved == "" || g.Source == SourceDefault) {
-			rc.ConsumerGroup = g.Value
-		}
-		out = append(out, rc)
+		out = append(out, routing.Component{Name: c.Name, Role: c.Role, Streams: c.Streams, Profile: c.rules, ConsumerGroup: c.routingGroup()})
 	}
 	return out
+}
+
+// routingGroup is the consumer group passed to routing: empty when there is
+// none or it could not be resolved.
+func (c *Component) routingGroup() string {
+	if g := c.ConsumerGroup; g != nil && (g.Unresolved == "" || g.Source == SourceDefault) {
+		return g.Value
+	}
+	return ""
 }

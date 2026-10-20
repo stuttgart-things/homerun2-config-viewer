@@ -25,7 +25,7 @@
                 <tr{{if not .Catchers}} class="unread"{{end}}>
                     <td><code>{{.Stream}}</code></td>
                     <td>{{range $i, $p := .Pitchers}}{{if $i}}, {{end}}{{$p.Name}}{{with $p.Via}} → {{.}}{{end}}{{if $p.When}} <small>({{join $p.When "; "}})</small>{{end}}{{else}}<small>no pitcher here</small>{{end}}</td>
-                    <td>{{range $i, $c := .Catchers}}{{if $i}}, {{end}}{{$c.Name}}{{if $c.ConsumerGroup}} <small>({{$c.ConsumerGroup}})</small>{{end}}{{else}}<strong>nobody reads this stream</strong>{{end}}</td>
+                    <td>{{range $i, $c := .Catchers}}{{if $i}}, {{end}}{{$c.Name}}{{if $c.ConsumerGroup}} <small>({{$c.ConsumerGroup}})</small>{{end}}{{if $c.OnDemand}} <small>on demand</small>{{end}}{{else}}<strong>nobody reads this stream</strong>{{end}}</td>
                     <td><a href="{{url "/matrix"}}?stream={{.Stream}}">matrix</a> · <a href="{{url "/dryrun"}}?stream={{.Stream}}">dry run</a></td>
                 </tr>
                 {{end}}

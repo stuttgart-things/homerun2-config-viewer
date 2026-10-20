@@ -39,6 +39,9 @@ type Component struct {
 	Streams []string `json:"streams"`
 	// StreamValues are the variables Streams was resolved from.
 	StreamValues []Value `json:"streamValues,omitempty"`
+	// OnDemandStreams are streams a led-catcher does not read from the start
+	// but its web simulator switches it to at runtime (UI_STREAM_PRESETS).
+	OnDemandStreams []string `json:"onDemandStreams,omitempty"`
 	// ConsumerGroup is set for catchers.
 	ConsumerGroup *Value `json:"consumerGroup,omitempty"`
 	// ProfilePath is set for catchers with a profile, and for k8s-pitcher
@@ -229,6 +232,43 @@ func resolveCatcher(c *Component, env environment, info kindInfo) {
 		c.ProfilePath = &p
 		noteUnresolved(c, p)
 	}
+
+	if c.Kind == KindLEDCatcher {
+		resolveOnDemand(c, env)
+	}
+}
+
+// resolveOnDemand sets the streams of led-catcher's UI_STREAM_PRESETS that it
+// does not read from the start: presets are comma-separated, the streams of
+// one preset |-separated, and a preset switches the catcher to its streams at
+// runtime (POST /streams).
+func resolveOnDemand(c *Component, env environment) {
+	presets := env.lookup("UI_STREAM_PRESETS", "")
+	noteUnresolved(c, presets)
+	if c.StreamsUnresolved || presets.Unresolved != "" && presets.Source != SourceDefault {
+		return
+	}
+	for _, preset := range strings.Split(presets.Value, ",") {
+		for _, s := range strings.Split(preset, "|") {
+			s = strings.TrimSpace(s)
+			if s != "" && !slices.Contains(c.Streams, s) && !slices.Contains(c.OnDemandStreams, s) {
+				c.OnDemandStreams = append(c.OnDemandStreams, s)
+			}
+		}
+	}
+	if len(c.OnDemandStreams) > 0 {
+		c.Notes = append(c.Notes, fmt.Sprintf("reads %s only on demand: a UI_STREAM_PRESETS preset switches it there at runtime",
+			quoteAll(c.OnDemandStreams)))
+	}
+}
+
+// quoteAll quotes each of ss and joins them with commas.
+func quoteAll(ss []string) string {
+	quoted := make([]string, len(ss))
+	for i, s := range ss {
+		quoted[i] = fmt.Sprintf("%q", s)
+	}
+	return strings.Join(quoted, ", ")
 }
 
 func resolvePitcher(c *Component, env environment, info kindInfo) {

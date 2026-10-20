@@ -30,7 +30,7 @@ internal/snapshot       one rebuild per CACHE_TTL, shared by concurrent requests
         ▼
 homerun-library routing  DryRun · BuildMatrix · Check
         │
-        ├── internal/web  /, /matrix, /dryrun
+        ├── internal/web  /, /matrix, /dryrun, /ui/manifest.json, /ui/fragment/findings
         └── internal/api  /api/components, /api/findings, /api/streams, /api/matrix, /api/dryrun
 ```
 

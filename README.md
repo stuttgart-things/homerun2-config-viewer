@@ -23,6 +23,7 @@ Background: [stuttgart-things/homerun-library#122](https://github.com/stuttgart-
   - components: streams, consumer group, profile status, notes
 - **`/matrix`** — severity × system for one stream: what each catcher reading it does. A catcher that does not react to a severity it should is highlighted as a gap.
 - **`/dryrun`** — type a sample message and see what every catcher would do, including *"this message reaches nobody"*.
+- **`/ui/fragment/findings`** — the findings as a fragment for the homerun2-portal overview, announced in `/ui/manifest.json`.
 
 The pages are server-rendered and work without JavaScript. The same data is available as JSON under `/api/*`, see [docs/usage.md](docs/usage.md).
 

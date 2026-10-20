@@ -52,6 +52,17 @@ Every pitcher on the overview links to its dry run.
 
 Nothing is published. With JavaScript, htmx swaps the result in place; without it, the form posts and the full page renders.
 
+### homerun2-portal fragment — `/ui/manifest.json`, `/ui/fragment/findings`
+
+The viewer offers one fragment for the portal's overview (homerun2-portal README, "Fragments"). `GET /ui/manifest.json` names it:
+
+```json
+{"name": "homerun2-config-viewer", "title": "Config Viewer", "version": "v0.6.0", "basePath": "/config",
+ "fragments": [{"id": "findings", "title": "Findings", "url": "/config/ui/fragment/findings", "refreshSeconds": 15}]}
+```
+
+`GET /ui/fragment/findings` is bare HTML styled only by the portal's `hr-*` classes: the number of findings, then the worst six in the overview's order - the kind as a badge coloured by its group (error, warning, info), the message next to it - and "+N more" for the rest, or "No findings". It ends with a link to the overview. Every URL carries `BASE_PATH`, everything from the cluster is escaped, and it reads the same cached snapshot as the pages, so the portal's refresh does not reach the Kubernetes API more often than `CACHE_TTL`. It is always a `200`; without a snapshot it says why.
+
 ## API
 
 All endpoints return JSON with a `meta` object:

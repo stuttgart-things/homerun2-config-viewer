@@ -105,6 +105,8 @@ func (s *Server) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /matrix", s.matrix)
 	mux.HandleFunc("GET /dryrun", s.dryRunForm)
 	mux.HandleFunc("POST /dryrun", s.dryRun)
+	mux.HandleFunc("GET /ui/manifest.json", s.manifest)
+	mux.HandleFunc("GET /ui/fragment/findings", s.findingsFragment)
 	mux.Handle("GET /static/", s.static)
 }
 

@@ -1,0 +1,10 @@
+{{define "fragment-findings" -}}
+<div class="hr-frag">
+{{- if .Err}}<span class="hr-muted">Cannot read the namespace: {{.Err}}</span>
+{{- else}}<span class="hr-muted">{{.Count}} finding{{if ne .Count 1}}s{{end}}</span><ul class="hr-list">
+{{- range .Findings}}<li class="hr-item"><span class="hr-sev hr-sev-{{.Severity}}">{{.Kind}}</span><span class="hr-title">{{.Message}}</span></li>
+{{- else}}<li class="hr-item hr-muted">No findings</li>{{end}}
+{{- if .More}}<li class="hr-item hr-muted">+{{.More}} more</li>{{end -}}
+</ul>{{end -}}
+<a class="hr-frag-more" href="{{url "/"}}">Open viewer →</a></div>
+{{- end}}

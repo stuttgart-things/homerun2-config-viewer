@@ -74,6 +74,8 @@ Background and design: stuttgart-things/homerun-library#122, build-out tracked i
 
 Server-rendered; everything works without JavaScript. No snapshot is a `503` page saying why.
 
+Colours are built on the homerun2 `--hr-*` tokens (homerun2-portal README, "Shared theme"): `static/viewer.css` keeps a copy under `:where(:root)` for running alone, and a request with `X-Forwarded-Prefix` (it came through the portal) also links the portal's `/static/homerun2-tokens.css` after it - the one root URL that does not carry `BASE_PATH`. In the portal's iframe a script at the top of `<head>` sets `html.hr-embedded`, and the banner becomes one compact line ("Embedded header"): the namespace on the left, the page links on the right, the current page as an outlined badge. Opened on its own the page keeps the full banner.
+
 ## API
 
 | Method & path | Returns |

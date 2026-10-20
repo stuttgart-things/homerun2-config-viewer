@@ -4,6 +4,8 @@ Everything is read-only. Every page and response reflects a snapshot of the name
 
 ## Pages
 
+Behind homerun2-portal the pages take the portal's palette (its `/static/homerun2-tokens.css`) and, inside the portal's frame, show one compact header line - the namespace on the left, Overview / Matrix / Dry run on the right - instead of the HOMERUN² banner. Opened on their own they keep the banner and look the same, from a built-in copy of the tokens.
+
 ### Overview — `/`
 
 ![Overview](images/overview.png)

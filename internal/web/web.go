@@ -139,11 +139,14 @@ type page struct {
 	RefreshFailedAt time.Time
 	// Err is why no snapshot could be read at all.
 	Err string
+	// PortalTheme links homerun2-portal's design tokens: the request came
+	// through the portal, which sets X-Forwarded-Prefix.
+	PortalTheme bool
 }
 
 // newPage fetches the snapshot for a page. The result is nil when there is
 // none; the page then says why.
-func (s *Server) newPage(ctx context.Context, name, title string) (page, *discovery.Result) {
+func (s *Server) newPage(r *http.Request, name, title string) (page, *discovery.Result) {
 	p := page{
 		Title:         title,
 		Page:          name,
@@ -151,8 +154,9 @@ func (s *Server) newPage(ctx context.Context, name, title string) (page, *discov
 		LabelSelector: s.opts.LabelSelector,
 		MustReact:     s.opts.MustReactSeverities,
 		Build:         s.opts.Build,
+		PortalTheme:   r.Header.Get("X-Forwarded-Prefix") != "",
 	}
-	snap, err := s.snapshots.Get(ctx)
+	snap, err := s.snapshots.Get(r.Context())
 	if err != nil {
 		p.Err = err.Error()
 		return p, nil
@@ -232,7 +236,7 @@ type overviewPage struct {
 }
 
 func (s *Server) overview(w http.ResponseWriter, r *http.Request) {
-	p, res := s.newPage(r.Context(), "overview", "Overview")
+	p, res := s.newPage(r, "overview", "Overview")
 	data := overviewPage{page: p}
 	if res == nil {
 		s.render(w, http.StatusServiceUnavailable, "overview.html", data)
@@ -279,7 +283,7 @@ type matrixPage struct {
 }
 
 func (s *Server) matrix(w http.ResponseWriter, r *http.Request) {
-	p, res := s.newPage(r.Context(), "matrix", "Matrix")
+	p, res := s.newPage(r, "matrix", "Matrix")
 	data := matrixPage{page: p}
 	if res == nil {
 		s.render(w, http.StatusServiceUnavailable, "matrix.html", data)
@@ -377,7 +381,7 @@ type dryRunPage struct {
 }
 
 func (s *Server) dryRunForm(w http.ResponseWriter, r *http.Request) {
-	p, res := s.newPage(r.Context(), "dryrun", "Dry run")
+	p, res := s.newPage(r, "dryrun", "Dry run")
 	q := r.URL.Query()
 	data := dryRunPage{
 		page: p,
@@ -403,7 +407,7 @@ func (s *Server) dryRunForm(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) dryRun(w http.ResponseWriter, r *http.Request) {
 	htmx := r.Header.Get("HX-Request") == "true"
-	p, res := s.newPage(r.Context(), "dryrun", "Dry run")
+	p, res := s.newPage(r, "dryrun", "Dry run")
 	data := dryRunPage{page: p, Severities: routing.Severities}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)

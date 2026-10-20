@@ -4,10 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} · HOMERUN² config viewer</title>
+    <script>
+        // In homerun2-portal's iframe the portal shows the brand and the
+        // service name: hr-embedded switches to the compact header. Set before
+        // the first paint, so the big banner never flashes.
+        if (window.self !== window.top) document.documentElement.classList.add('hr-embedded');
+    </script>
     <link rel="icon" type="image/png" href="{{url "/static/favicon.png"}}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{url "/static/viewer.css"}}">
+    {{/* The portal's tokens, after viewer.css and its copy of them. A root
+         URL on purpose: the file is the portal's, not under BASE_PATH. */}}
+    {{if .PortalTheme}}<link rel="stylesheet" href="/static/homerun2-tokens.css">{{end}}
     <script src="{{url "/static/htmx.min.js"}}"></script>
 </head>
 <body>
@@ -15,7 +24,7 @@
         <div>
             <a href="{{url "/"}}" style="text-decoration:none;color:inherit">
                 <h1>HOMERUN²</h1>
-                <div class="subtitle">config viewer · {{.Namespace}}</div>
+                <div class="subtitle"><span class="standalone-only">config viewer · </span><span class="embedded-only">Namespace </span>{{.Namespace}}</div>
             </a>
         </div>
         <nav class="actions">

@@ -4,7 +4,7 @@ go 1.26.9
 
 require (
 	charm.land/bubbletea/v2 v2.1.0
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/lipgloss/v2 v2.1.0
 	github.com/stuttgart-things/homerun-library/v4 v4.5.2
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sync v0.24.0
